@@ -628,7 +628,7 @@ CREATE INDEX idx_admin_messages_unread       ON admin_messages (hotel_id, create
 CREATE INDEX idx_alerts_active               ON alerts (hotel_id) WHERE active = TRUE;
 
 -- Live events
-CREATE INDEX idx_live_events_active          ON live_events (hotel_id, display_until) WHERE display_until > NOW();
+CREATE INDEX idx_live_events_active          ON live_events (hotel_id, display_until)
 
 
 -- ============================================================================
