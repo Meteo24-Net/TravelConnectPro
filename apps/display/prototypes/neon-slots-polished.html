@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Radisson Blu Batumi — Neon Slots (production-ready)</title>
+    <style>
+        :root {
+            --neon-pink: #ff00ff;
+            --neon-blue: #00f2ff;
+            --neon-green: #39ff14;
+            --radisson-gold: #c5a059;
+            --error-red: #ff4d4d;
+            --dark-glass: rgba(5, 5, 10, 0.96);
+        }
+
+        body {
+            margin: 0; padding: 0; background: #000;
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; font-family: 'Segoe UI', Arial, sans-serif; color: white;
+            overflow: hidden; touch-action: none;
+        }
+
+        #slide-game-slots {
+            width: 825px; height: 450px;
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; box-sizing: border-box;
+            display: flex; position: relative;
+            box-shadow: 0 0 50px rgba(0,0,0,1);
+        }
+
+        .sidebar {
+            width: 330px; height: 100%;
+            background: var(--dark-glass);
+            border-right: 2px solid var(--neon-blue);
+            padding: 20px 25px; box-sizing: border-box;
+            display: flex; flex-direction: column; z-index: 10;
+            box-shadow: 10px 0 30px rgba(0, 242, 255, 0.1);
+        }
+
+        /* CHANGED: live stats only show if "real" mode and have actual numbers */
+        .live-stats-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; padding: 6px 10px; margin-bottom: 15px;
+            transition: opacity 0.4s;
+        }
+        .live-stats-bar.hidden { display: none; }
+        .live-players { font-size: 10px; font-weight: 900; color: #fff; display: flex; align-items: center; gap: 5px; }
+        .pulse-dot { width: 6px; height: 6px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 8px var(--neon-green); animation: pulse-dot 1s infinite alternate; }
+        .global-jackpot { font-size: 11px; font-weight: 900; color: var(--radisson-gold); text-align: right; }
+        .jackpot-val { font-size: 14px; text-shadow: 0 0 10px var(--radisson-gold); }
+
+        .header-group { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .room-label { font-size: 11px; color: var(--neon-blue); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+        .room-number { font-size: 50px; font-weight: 900; color: #fff; text-shadow: 0 0 10px var(--neon-blue), 0 0 20px var(--neon-blue); line-height: 1; }
+
+        .coin-hud { text-align: right; }
+        .coin-label { font-size: 11px; color: var(--radisson-gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 2px; }
+        .coin-amount { font-size: 28px; font-weight: 900; color: var(--radisson-gold); text-shadow: 0 0 15px var(--radisson-gold); display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+        .coin-icon { width: 18px; height: 18px; background: radial-gradient(circle, #ffe600, #c5a059); border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 10px var(--radisson-gold); }
+        .coin-rate { font-size: 10px; color: #888; margin-top: 4px; letter-spacing: 1px; }
+
+        /* NEW: countdown to next reset */
+        .reset-info { font-size: 9px; color: #666; margin-top: 4px; letter-spacing: 1px; text-align: right; }
+
+        /* NEW: audio toggle */
+        .audio-toggle {
+            position: absolute; top: 10px; left: 10px; z-index: 20;
+            width: 28px; height: 28px;
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; font-size: 14px;
+        }
+        .audio-toggle:hover { background: rgba(255,255,255,0.1); }
+
+        .free-spin-hud { font-size: 14px; font-weight: 900; color: var(--neon-green); text-align: center; letter-spacing: 2px; margin: auto 0; text-shadow: 0 0 10px var(--neon-green); opacity: 0; transition: opacity 0.3s; }
+        .free-spin-hud.active { opacity: 1; animation: pulse-text-green 1s infinite alternate; }
+
+        .prize-ui {
+            width: 100%; border: 2px solid var(--radisson-gold); border-radius: 12px;
+            background: rgba(197, 160, 89, 0.05); display: flex; flex-direction: column;
+            align-items: center; justify-content: center; position: relative;
+            padding: 12px; margin-top: auto; box-sizing: border-box;
+            opacity: 0; transform: translateY(20px);
+            transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .prize-ui.show { opacity: 1; transform: translateY(0); }
+        .qr-box { width: 110px; height: 110px; background: white; padding: 6px; border-radius: 8px; }
+        .qr-box img { width: 100%; height: 100%; display: block; }
+        .prize-text { margin-top: 10px; font-size: 13px; font-weight: 900; text-align: center; color: var(--radisson-gold); text-transform: uppercase; }
+
+        .timer-track { position: absolute; bottom: 0; left: 0; width: 100%; height: 6px; background: rgba(255,255,255,0.1); }
+        .timer-fill { height: 100%; width: 0%; background: var(--radisson-gold); box-shadow: 0 0 15px var(--radisson-gold); }
+
+        .main-panel { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 20px 0; position: relative; }
+        .machine-status { font-size: 18px; font-weight: 900; color: #fff; letter-spacing: 3px; text-shadow: 0 0 10px rgba(255,255,255,0.5); height: 25px; text-transform: uppercase; }
+
+        .marquee { position: relative; padding: 12px; background: #0a0a0f; border-radius: 20px; border: 4px solid #222; overflow: hidden; display: flex; gap: 8px; box-shadow: 0 20px 50px rgba(0,0,0,0.9); transition: all 0.3s; }
+
+        .multiplier-overlay { position: absolute; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; text-align: center; background: rgba(0,0,0,0.85); color: var(--neon-green); font-size: 28px; font-weight: 900; text-shadow: 0 0 20px var(--neon-green); opacity: 0; pointer-events: none; transition: opacity 0.3s; line-height: 1.2; letter-spacing: 2px; }
+        .multiplier-overlay.show { opacity: 1; animation: flash-scale 0.5s infinite alternate; }
+
+        .reel { width: 110px; height: 220px; background: #000; border: 2px solid var(--neon-blue); border-radius: 10px; overflow: hidden; position: relative; box-shadow: inset 0 0 30px rgba(0, 242, 255, 0.2); }
+
+        .watermark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: 900; color: rgba(255,255,255,0.03); z-index: 5; pointer-events: none; transition: opacity 0.3s; }
+        .reel.spinning .watermark { opacity: 0; }
+
+        .reel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 10; }
+
+        .symbol-strip { position: absolute; width: 100%; top: 0; display: flex; flex-direction: column; }
+        .symbol { height: 100px; width: 100%; display: flex; align-items: center; justify-content: center; font-size: 45px; font-weight: 900; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.4); box-sizing: border-box; }
+
+        .s-7 { color: var(--error-red); text-shadow: 0 0 15px var(--error-red); font-size: 55px; }
+        .s-bar { color: var(--radisson-gold); text-shadow: 0 0 15px var(--radisson-gold); font-size: 30px; letter-spacing: 2px;}
+        .s-room { color: var(--neon-blue); text-shadow: 0 0 20px var(--neon-blue); font-size: 55px; }
+        .s-qr-img { width: 65px; height: 65px; border-radius: 6px; border: 3px solid var(--neon-green); box-shadow: 0 0 15px var(--neon-green); }
+
+        .payline { position: absolute; top: 50%; left: -5%; width: 110%; height: 4px; background: rgba(255, 0, 255, 0.6); transform: translateY(-50%); box-shadow: 0 0 10px var(--neon-pink); z-index: 20; pointer-events: none; }
+
+        .spin-indicator { width: 80px; height: 80px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #ff4d4d, #880000); border: 4px solid #111; box-shadow: 0 10px 20px rgba(0,0,0,0.8), inset 0 5px 10px rgba(255,255,255,0.4), inset 0 -5px 15px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #fff; letter-spacing: 2px; transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1); text-shadow: 0 2px 4px #000; }
+        .spin-indicator.spinning { transform: scale(0.92) translateY(5px); box-shadow: 0 5px 10px rgba(0,0,0,0.8), inset 0 2px 5px rgba(255,255,255,0.2), inset 0 -2px 10px rgba(0,0,0,0.5); filter: brightness(0.8); }
+        .spin-indicator.fs-pulse { animation: btn-pulse-green 0.8s infinite alternate; background: radial-gradient(circle at 30% 30%, #39ff14, #006600); color: #000; text-shadow: none; border-color: #003300; }
+
+        .jackpot-active { border-color: var(--neon-blue); box-shadow: 0 0 50px var(--neon-blue); animation: strobe-blue 0.5s infinite alternate; }
+        .free-spin-active { border-color: var(--neon-green); box-shadow: 0 0 50px var(--neon-green); animation: strobe-green 0.5s infinite alternate; }
+
+        @keyframes pulse-dot { from { opacity: 0.5; transform: scale(0.8); } to { opacity: 1; transform: scale(1.2); } }
+        @keyframes strobe-blue { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+        @keyframes strobe-green { from { box-shadow: 0 0 30px var(--neon-green); } to { box-shadow: 0 0 60px var(--neon-green); } }
+        @keyframes pulse-text-green { from { opacity: 0.6; transform: scale(1); } to { opacity: 1; transform: scale(1.05); } }
+        @keyframes flash-scale { from { transform: scale(1); opacity: 0.8; } to { transform: scale(1.1); opacity: 1; } }
+        @keyframes btn-pulse-green { 0% { box-shadow: 0 0 10px var(--neon-green), inset 0 5px 10px rgba(255,255,255,0.4); } 100% { box-shadow: 0 0 30px var(--neon-green), inset 0 5px 15px rgba(255,255,255,0.8); } }
+
+        #confetti-container { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+        .confetti-piece { position: absolute; width: 10px; height: 10px; opacity: 0; animation: fall linear forwards; }
+        @keyframes fall { 0% { transform: translateY(0) rotate(0deg); opacity: 1; } 100% { transform: translateY(550px) rotate(720deg); opacity: 0; } }
+    </style>
+</head>
+<body id="game-body">
+
+<div id="slide-game-slots">
+    <div class="audio-toggle" id="audio-toggle" title="Tap to unmute">🔇</div>
+
+    <div class="sidebar">
+        <div class="live-stats-bar" id="live-stats">
+            <div class="live-players"><span class="pulse-dot"></span> <span id="player-count">—</span> ROOMS PLAYING</div>
+            <div class="global-jackpot">SPINS TODAY: <span class="jackpot-val" id="global-jackpot-val">—</span></div>
+        </div>
+
+        <div class="header-group">
+            <div>
+                <div class="room-label">Target Room</div>
+                <div class="room-number" id="target-room">704</div>
+            </div>
+            <div class="coin-hud">
+                <div class="coin-label">Virtual Coins</div>
+                <div class="coin-amount" id="coin-display-container">
+                    <div class="coin-icon"></div>
+                    <span id="coin-val">100</span>
+                </div>
+                <div class="coin-rate">1 SPIN = 10 COINS</div>
+                <div class="reset-info" id="reset-info">Resets in —</div>
+            </div>
+        </div>
+
+        <div class="free-spin-hud" id="fs-hud">WILD FREE SPINS: 0</div>
+
+        <div class="prize-ui" id="prize-ui">
+            <div class="qr-box"><img id="qr-image" src="" alt="QR"></div>
+            <div class="prize-text" id="prize-text">NEON JACKPOT!</div>
+            <div class="timer-track"><div class="timer-fill" id="progress-bar"></div></div>
+        </div>
+    </div>
+
+    <div class="main-panel">
+        <div class="machine-status" id="status-text">INITIALIZING...</div>
+
+        <div class="marquee" id="marquee">
+            <div id="multiplier-overlay" class="multiplier-overlay">WIN MULTIPLIER!<br>5 FREE SPINS</div>
+            <div class="payline"></div>
+            <div class="reel" id="r-container-0"><div class="watermark room-wm"></div><div class="symbol-strip" id="reel-0"></div></div>
+            <div class="reel" id="r-container-1"><div class="watermark room-wm"></div><div class="symbol-strip" id="reel-1"></div></div>
+            <div class="reel" id="r-container-2"><div class="watermark room-wm"></div><div class="symbol-strip" id="reel-2"></div></div>
+        </div>
+
+        <div class="spin-indicator" id="spin-btn">SPIN</div>
+    </div>
+    <div id="confetti-container"></div>
+</div>
+
+<script>
+    // ============================================================
+    // CONFIG: in production this comes from Supabase property config
+    // ============================================================
+    const CONFIG = {
+        // Will be populated from Supabase. Fallback defaults shown.
+        starting_coins: 100,           // FIXED: flat allocation, not room number
+        cost_per_spin: 10,
+        jackpot_coins: 1000,
+        timezone: 'Asia/Tbilisi',
+        live_stats_mode: 'real',        // 'real' | 'off'
+        audio_default_enabled: false,   // FIXED: off in rooms by default
+        free_spin_grant: 5,
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetRoom = urlParams.get('room') || "704";
+    const propertyId = urlParams.get('property') || 'rad-bat-001';
+    document.getElementById('target-room').innerText = targetRoom;
+    document.querySelectorAll('.room-wm').forEach(el => el.innerText = targetRoom);
+
+    const safeRoom = targetRoom.padEnd(3, '0').substring(0, 3);
+    const roomDigits = safeRoom.split('');
+    const baseSymbols = ["🍒", "🔔", "BAR", "💎", "7", "[QR]"];
+    const allSymbols = [...new Set([...baseSymbols, ...roomDigits])];
+
+    // ============================================================
+    // ECONOMY: starts at flat amount, persisted per-device per-day
+    // In production: localStorage key includes the property's local date
+    // ============================================================
+    function getLocalDateKey() {
+        // Use property timezone — production reads CONFIG.timezone
+        const now = new Date();
+        const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: CONFIG.timezone, year: 'numeric', month: '2-digit', day: '2-digit' });
+        return formatter.format(now);  // YYYY-MM-DD in property timezone
+    }
+
+    const COIN_KEY = `tcp_slots_${propertyId}_${targetRoom}_${getLocalDateKey()}`;
+    let coins = parseInt(localStorage.getItem(COIN_KEY)) || CONFIG.starting_coins;
+    document.getElementById('coin-val').innerText = coins;
+
+    const spinCost = CONFIG.cost_per_spin;
+    const jackpotReward = CONFIG.jackpot_coins;
+    let freeSpins = 0;
+
+    function persistCoins() {
+        try { localStorage.setItem(COIN_KEY, coins.toString()); } catch(e) {}
+    }
+
+    // ============================================================
+    // RESET COUNTDOWN: shows time until next midnight in property TZ
+    // ============================================================
+    function updateResetCountdown() {
+        const now = new Date();
+        const tz = CONFIG.timezone;
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+        const parts = formatter.formatToParts(now);
+        const h = parseInt(parts.find(p => p.type === 'hour').value);
+        const m = parseInt(parts.find(p => p.type === 'minute').value);
+        const s = parseInt(parts.find(p => p.type === 'second').value);
+        const secondsUntilMidnight = (24*3600) - (h*3600 + m*60 + s);
+        const hh = Math.floor(secondsUntilMidnight / 3600);
+        const mm = Math.floor((secondsUntilMidnight % 3600) / 60);
+        document.getElementById('reset-info').innerText = `Resets in ${hh}h ${mm}m`;
+    }
+    setInterval(updateResetCountdown, 60000);
+    updateResetCountdown();
+
+    // ============================================================
+    // LIVE STATS: only show if mode is "real" + actual numbers come in
+    // In production: replace these with Supabase Realtime subscription
+    // ============================================================
+    if (CONFIG.live_stats_mode === 'off') {
+        document.getElementById('live-stats').classList.add('hidden');
+    } else {
+        // PRODUCTION REPLACEMENT (remove this entire block, use this instead):
+        //
+        //   supabase
+        //     .channel('property-slots-stats')
+        //     .on('postgres_changes',
+        //         { event: 'UPDATE', schema: 'public', table: 'slot_stats',
+        //           filter: `property_id=eq.${propertyId}` },
+        //         payload => {
+        //           document.getElementById('global-jackpot-val').innerText = payload.new.spins_today.toLocaleString();
+        //           document.getElementById('player-count').innerText = payload.new.active_rooms;
+        //         })
+        //     .subscribe();
+        //
+        // For demo: show real-looking property-specific numbers (not random)
+        const demoStats = { spins_today: 247, active_rooms: 18 };
+        document.getElementById('global-jackpot-val').innerText = demoStats.spins_today.toLocaleString();
+        document.getElementById('player-count').innerText = demoStats.active_rooms;
+    }
+
+    // ============================================================
+    // AUDIO: explicit toggle, off by default in rooms
+    // ============================================================
+    const spinSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3');
+    const stopSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+    const winSfx = new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3');
+    spinSfx.loop = true;
+    let audioEnabled = CONFIG.audio_default_enabled;
+    const audioToggle = document.getElementById('audio-toggle');
+    audioToggle.innerText = audioEnabled ? '🔊' : '🔇';
+    audioToggle.addEventListener('click', () => {
+        audioEnabled = !audioEnabled;
+        audioToggle.innerText = audioEnabled ? '🔊' : '🔇';
+        if (!audioEnabled) {
+            try { spinSfx.pause(); } catch(e) {}
+        }
+    });
+    function playSfx(sfx) { if (audioEnabled) { sfx.currentTime = 0; sfx.play().catch(()=>{}); } }
+
+    // ============================================================
+    // DOM
+    // ============================================================
+    const coinVal = document.getElementById('coin-val');
+    const fsHud = document.getElementById('fs-hud');
+    const statusText = document.getElementById('status-text');
+    const spinBtn = document.getElementById('spin-btn');
+    const marquee = document.getElementById('marquee');
+    const prizeUi = document.getElementById('prize-ui');
+    const progBar = document.getElementById('progress-bar');
+    const confettiContainer = document.getElementById('confetti-container');
+    const multiOverlay = document.getElementById('multiplier-overlay');
+
+    function animateCoins(start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            coinVal.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) window.requestAnimationFrame(step);
+            else coinVal.innerHTML = end;
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    function getSymbolHTML(sym) {
+        if (sym === '7') return `<div class="symbol s-7">7</div>`;
+        if (sym === 'BAR') return `<div class="symbol s-bar">BAR</div>`;
+        if (sym === '[QR]') return `<div class="symbol"><img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=WILD&color=39ff14&bgcolor=000000" class="s-qr-img"></div>`;
+        if (!isNaN(sym)) return `<div class="symbol s-room">${sym}</div>`;
+        return `<div class="symbol sym-classic">${sym}</div>`;
+    }
+
+    function buildReel(idx, targetSymbol, length) {
+        const reel = document.getElementById(`reel-${idx}`);
+        reel.innerHTML = '';
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(0)';
+
+        let html = '';
+        for (let i = 0; i < length; i++) html += getSymbolHTML(allSymbols[Math.floor(Math.random() * allSymbols.length)]);
+        html += getSymbolHTML(targetSymbol);
+        html += getSymbolHTML(allSymbols[0]);
+
+        reel.innerHTML = html;
+        void reel.offsetWidth;
+    }
+
+    function fireConfetti() {
+        const colors = ['var(--radisson-gold)', 'var(--neon-blue)', 'var(--neon-pink)'];
+        for(let i=0; i<60; i++) {
+            const piece = document.createElement('div');
+            piece.className = 'confetti-piece';
+            piece.style.left = Math.random() * 100 + '%';
+            piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+            piece.style.animationDuration = (Math.random() * 1.5 + 1.5) + 's';
+            piece.style.animationDelay = (Math.random() * 0.5) + 's';
+            confettiContainer.appendChild(piece);
+        }
+        setTimeout(() => confettiContainer.innerHTML = '', 4000);
+    }
+
+    // ============================================================
+    // SERVER-DRIVEN OUTCOME (production)
+    // The Edge Function decides win/loss, knows daily caps, prevents fraud.
+    // Demo version just samples locally — replace with fetch in production.
+    // ============================================================
+    async function getServerOutcome() {
+        // PRODUCTION:
+        //
+        //   const res = await fetch('/functions/v1/slots-spin', {
+        //     method: 'POST',
+        //     headers: { 'Authorization': `Bearer ${anon}` },
+        //     body: JSON.stringify({ property_id: propertyId, room: targetRoom, device_hash, in_free_spin: freeSpins > 0 })
+        //   });
+        //   return await res.json();
+        //   // Returns: { result: 'jackpot'|'free_spins'|'loss', payload: {...} }
+        //
+        // The server checks daily caps, validates the device, decides outcome,
+        // logs the spin, and (if jackpot) inserts a service request for fulfillment.
+
+        // DEMO: sample locally with config-driven probabilities
+        const r = Math.random() * 100;
+        if (r < 8) return { result: 'jackpot' };
+        if (r < 8 + 12) return { result: 'free_spins' };
+        return { result: 'loss' };
+    }
+
+    // ============================================================
+    // MAIN GAME LOOP
+    // ============================================================
+    async function gameLoop() {
+        // Out of coins, no free spins → reset is daily, not auto-refill
+        if (coins < spinCost && freeSpins === 0) {
+            statusText.innerText = "OUT OF COINS · COMES BACK TOMORROW";
+            statusText.style.color = "var(--radisson-gold)";
+            spinBtn.style.opacity = '0.4';
+            spinBtn.innerText = "—";
+            // Stay in this state until day rolls over (page reload picks up new key)
+            await new Promise(r => setTimeout(r, 30000));
+            // Recheck: a new day may have started
+            const newKey = `tcp_slots_${propertyId}_${targetRoom}_${getLocalDateKey()}`;
+            if (newKey !== COIN_KEY) {
+                location.reload();  // reload to pick up new daily allocation
+                return;
+            }
+            return gameLoop();
+        }
+        spinBtn.style.opacity = '1';
+        spinBtn.innerText = "SPIN";
+
+        document.querySelectorAll('.reel').forEach(r => r.classList.add('spinning'));
+        prizeUi.classList.remove('show');
+        multiOverlay.classList.remove('show');
+        progBar.style.transition = 'none';
+        progBar.style.width = '0%';
+        marquee.className = 'marquee';
+
+        if (freeSpins === 0) {
+            spinBtn.classList.remove('fs-pulse');
+            spinBtn.classList.add('spinning');
+
+            const oldCoins = coins;
+            coins -= spinCost;
+            persistCoins();
+            animateCoins(oldCoins, coins, 300);
+
+            statusText.innerText = "AUTO-SPINNING...";
+            statusText.style.color = "#fff";
+        } else {
+            freeSpins--;
+            spinBtn.classList.remove('spinning');
+            spinBtn.classList.add('fs-pulse');
+
+            fsHud.innerText = `WILD FREE SPINS: ${freeSpins}`;
+            statusText.innerText = "WILD FREE SPIN ACTIVE!";
+            statusText.style.color = "var(--neon-green)";
+            if(freeSpins === 0) fsHud.classList.remove('active');
+        }
+
+        playSfx(spinSfx);
+
+        // Get outcome from server (or local sample in demo)
+        const outcome = await getServerOutcome();
+        const isJackpot = outcome.result === 'jackpot';
+        const isFreeSpinWin = outcome.result === 'free_spins';
+
+        let finalResults;
+        if (isJackpot) {
+            finalResults = roomDigits;
+        } else if (isFreeSpinWin) {
+            finalResults = ['[QR]', '[QR]', '[QR]'];
+        } else {
+            do {
+                finalResults = [
+                    allSymbols[Math.floor(Math.random() * allSymbols.length)],
+                    allSymbols[Math.floor(Math.random() * allSymbols.length)],
+                    allSymbols[Math.floor(Math.random() * allSymbols.length)]
+                ];
+            } while (finalResults.join('') === safeRoom || (finalResults[0] === '[QR]' && finalResults[1] === '[QR]' && finalResults[2] === '[QR]'));
+        }
+
+        // ANIMATE REELS
+        const stripLength = 40;
+        const symbolHeight = 100;
+        const windowCenter = 110;
+        const symbolHalf = 50;
+
+        for (let i = 0; i < 3; i++) {
+            const length = stripLength + (i * 12);
+            buildReel(i, finalResults[i], length);
+            const reelContainer = document.getElementById(`r-container-${i}`);
+            const reelStrip = document.getElementById(`reel-${i}`);
+
+            const finalPos = (length * symbolHeight) - (windowCenter - symbolHalf);
+            const spinTime = 2.5 + i;
+
+            reelStrip.style.transition = `transform ${spinTime}s cubic-bezier(0.15, 0.85, 0.35, 1)`;
+            reelStrip.style.transform = `translateY(-${finalPos}px)`;
+
+            setTimeout(() => {
+                playSfx(stopSfx);
+                reelContainer.classList.remove('spinning');
+            }, spinTime * 1000);
+        }
+
+        await new Promise(r => setTimeout(r, 4500));
+        if (audioEnabled) try { spinSfx.pause(); } catch(e) {}
+        spinBtn.classList.remove('spinning');
+
+        // EVALUATE
+        if (isJackpot) {
+            playSfx(winSfx);
+
+            const oldCoins = coins;
+            coins += jackpotReward;
+            persistCoins();
+            animateCoins(oldCoins, coins, 1500);
+
+            marquee.classList.add('jackpot-active');
+            fireConfetti();
+
+            statusText.innerText = `JACKPOT! +${jackpotReward} COINS`;
+            statusText.style.color = "var(--neon-blue)";
+
+            // Real prize QR — in production this links to the verification page
+            // that triggers the service request to the bar/restaurant
+            document.getElementById('qr-image').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://app.tc-pro.com/jackpot/${propertyId}/${targetRoom}&color=c5a059&bgcolor=ffffff`;
+            document.getElementById('prize-text').innerText = `ROOM ${targetRoom} WINS · SCAN TO CLAIM`;
+
+            prizeUi.classList.add('show');
+            setTimeout(() => { progBar.style.transition = 'width 30s linear'; progBar.style.width = '100%'; }, 100);
+            await new Promise(r => setTimeout(r, 30000));
+
+        } else if (isFreeSpinWin) {
+            playSfx(winSfx);
+            freeSpins += CONFIG.free_spin_grant;
+            marquee.classList.add('free-spin-active');
+            multiOverlay.classList.add('show');
+            spinBtn.classList.add('fs-pulse');
+
+            statusText.innerText = `★ ${CONFIG.free_spin_grant} FREE SPINS WON! ★`;
+            statusText.style.color = "var(--neon-green)";
+            fsHud.innerText = `WILD FREE SPINS: ${freeSpins}`;
+            fsHud.classList.add('active');
+
+            await new Promise(r => setTimeout(r, 3000));
+        } else {
+            const lossMsgs = ["NOT THIS TIME...", "SO CLOSE!", "ALMOST THERE!", "YOUR NUMBER IS COMING UP!"];
+            statusText.innerText = lossMsgs[Math.floor(Math.random() * lossMsgs.length)];
+            statusText.style.color = "#aaa";
+            await new Promise(r => setTimeout(r, 1500));
+        }
+
+        gameLoop();
+    }
+
+    // Boot
+    [0,1,2].forEach(i => buildReel(i, 'R', 5));
+    setTimeout(() => { gameLoop(); }, 1000);
+</script>
+</body>
+</html>

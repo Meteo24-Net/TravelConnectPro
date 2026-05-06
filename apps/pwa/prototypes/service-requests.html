@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCP — Service Request Automation</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tcp-blue: #009FE3;
+    --tcp-gold: #c5a059;
+    --tcp-green: #2ecc71;
+    --tcp-red: #ef4444;
+    --tcp-amber: #f59e0b;
+    --tcp-purple: #a855f7;
+    --bg-base: #0a0a0d;
+    --bg-panel: #14141a;
+    --bg-input: #0f0f14;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-default: rgba(255,255,255,0.1);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+  }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+
+  .panel { background: var(--bg-panel); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .panel-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .panel-sub { font-size: 12px; color: var(--text-tertiary); margin-bottom: 16px; }
+  .lbl { display: block; font-size: 10px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .input, .select { background: var(--bg-input); border: 1px solid var(--border-default); border-radius: 7px; padding: 9px 12px; font-size: 13px; color: var(--text-primary); width: 100%; }
+  .input:focus, .select:focus { outline: none; border-color: var(--tcp-blue); }
+  .btn { padding: 8px 14px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 6px; }
+  .btn-primary { background: var(--tcp-blue); color: white; }
+  .btn-primary:hover { background: #0077AD; }
+  .btn-secondary { background: rgba(255,255,255,0.05); color: var(--text-primary); border-color: var(--border-default); }
+  .btn-success { background: var(--tcp-green); color: black; }
+  .btn-danger { background: rgba(239, 68, 68, 0.1); color: var(--tcp-red); border-color: rgba(239, 68, 68, 0.25); }
+
+  /* Tabs */
+  .tab-row { display: flex; gap: 0; margin-bottom: 16px; }
+  .tab-btn { padding: 8px 16px; font-size: 12px; font-weight: 600; border: 1px solid var(--border-default); border-right: none; cursor: pointer; background: var(--bg-panel); color: var(--text-secondary); transition: all .15s; }
+  .tab-btn:first-child { border-radius: 8px 0 0 8px; }
+  .tab-btn:last-child { border-right: 1px solid var(--border-default); border-radius: 0 8px 8px 0; }
+  .tab-btn.active { background: var(--tcp-blue); color: white; border-color: var(--tcp-blue); }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 320px;
+    height: 640px;
+    background: var(--bg-panel);
+    border-radius: 32px;
+    border: 7px solid #1a1a22;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.4);
+    flex-shrink: 0;
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a14 0%, #14141f 100%);
+    overflow-y: auto;
+    position: relative;
+    padding: 44px 20px 20px;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 110px; height: 24px;
+    background: #1a1a22;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+
+  /* Service tile (in PWA) */
+  .svc-tile {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-default);
+    border-radius: 12px;
+    padding: 14px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .svc-tile:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+  .svc-tile-emoji { font-size: 28px; }
+  .svc-tile-name { font-size: 11px; font-weight: 500; margin-top: 6px; line-height: 1.3; }
+
+  /* Telegram message mock */
+  .tg-frame {
+    background: #17212b;
+    border-radius: 12px;
+    padding: 14px;
+    color: #e0e6ec;
+    border: 1px solid #2a3744;
+    font-family: 'Manrope', system-ui, sans-serif;
+  }
+  .tg-message {
+    background: #2b5278;
+    border-radius: 10px;
+    padding: 12px;
+    color: white;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .tg-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tg-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex: 1;
+    min-width: 80px;
+  }
+  .tg-btn:hover { background: rgba(255,255,255,0.18); }
+  .tg-btn.primary { background: rgba(0, 159, 227, 0.4); }
+  .tg-btn.success { background: rgba(46, 204, 113, 0.4); }
+  .tg-btn.danger { background: rgba(239, 68, 68, 0.4); }
+
+  /* Request status */
+  .req-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 8px;
+    padding: 14px;
+    transition: all 0.15s;
+  }
+  .req-card:hover { border-color: rgba(255,255,255,0.18); }
+  .req-status-pill { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; border: 1px solid; display: inline-flex; align-items: center; gap: 4px; }
+  .pill-pending { background: rgba(245, 158, 11, 0.1); color: var(--tcp-amber); border-color: rgba(245, 158, 11, 0.25); }
+  .pill-acknowledged { background: rgba(0, 159, 227, 0.1); color: var(--tcp-blue); border-color: rgba(0, 159, 227, 0.25); }
+  .pill-in-progress { background: rgba(168, 85, 247, 0.1); color: var(--tcp-purple); border-color: rgba(168, 85, 247, 0.25); }
+  .pill-completed { background: rgba(46, 204, 113, 0.1); color: var(--tcp-green); border-color: rgba(46, 204, 113, 0.25); }
+  .pill-overdue { background: rgba(239, 68, 68, 0.1); color: var(--tcp-red); border-color: rgba(239, 68, 68, 0.25); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0.5; } }
+
+  /* Priority */
+  .prio-bar { width: 4px; align-self: stretch; border-radius: 2px; flex-shrink: 0; }
+  .prio-low { background: var(--tcp-green); }
+  .prio-medium { background: var(--tcp-amber); }
+  .prio-high { background: var(--tcp-red); }
+
+  /* Stat */
+  .stat-card { background: var(--bg-input); border: 1px solid var(--border-default); border-radius: 8px; padding: 14px 16px; }
+  .stat-num { font-size: 26px; font-weight: 600; line-height: 1; }
+  .stat-lbl { font-size: 10px; color: var(--text-tertiary); margin-top: 5px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Toggle */
+  .toggle { position: relative; width: 36px; height: 20px; background: var(--bg-input); border: 1px solid var(--border-default); border-radius: 10px; cursor: pointer; transition: all .2s; flex-shrink: 0; }
+  .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: var(--text-tertiary); border-radius: 50%; transition: all .2s; }
+  .toggle.on { background: rgba(0, 159, 227, 0.2); border-color: var(--tcp-blue); }
+  .toggle.on::after { left: 18px; background: var(--tcp-blue); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// =============================================================
+// MOCK DATA
+// =============================================================
+const SERVICES = [
+  { id: 'clean-room',     emoji: '🧹', name: 'Clean my room',      priority: 'medium', sla_min: 30, channel: 'housekeeping', auto: true },
+  { id: 'late-checkout',  emoji: '⏱',  name: 'Request late checkout', priority: 'low',    sla_min: 60, channel: 'front_desk',   auto: false },
+  { id: 'extra-towels',   emoji: '🧺', name: 'Extra towels',        priority: 'low',    sla_min: 20, channel: 'housekeeping', auto: true },
+  { id: 'room-service',   emoji: '🍽',  name: 'Room service menu',   priority: 'low',    sla_min: 5,  channel: 'restaurant',    auto: true },
+  { id: 'spa-booking',    emoji: '💆', name: 'Book a spa session',   priority: 'low',    sla_min: 15, channel: 'spa',           auto: false },
+  { id: 'concierge',      emoji: '🛎', name: 'Concierge help',       priority: 'medium', sla_min: 10, channel: 'front_desk',   auto: false },
+  { id: 'urgent-issue',   emoji: '🚨', name: 'Urgent assistance',    priority: 'high',   sla_min: 5,  channel: 'manager_on_duty', auto: false },
+  { id: 'taxi',           emoji: '🚕', name: 'Order a taxi',         priority: 'medium', sla_min: 10, channel: 'concierge',     auto: true },
+];
+
+const INITIAL_REQUESTS = [
+  { id: 'r1', service_id: 'clean-room',    room: '412', status: 'completed',     created: 45, completed: 38, by: 'Maria K.', notes: '' },
+  { id: 'r2', service_id: 'spa-booking',   room: '218', status: 'in-progress',   created: 12, by: 'Front desk', notes: 'Guest prefers 16:00 slot' },
+  { id: 'r3', service_id: 'late-checkout', room: '305', status: 'acknowledged',  created: 4,  by: 'Anna F.', notes: '' },
+  { id: 'r4', service_id: 'extra-towels',  room: '518', status: 'pending',       created: 2,  by: null, notes: '' },
+  { id: 'r5', service_id: 'urgent-issue',  room: '402', status: 'pending',       created: 8,  by: null, notes: 'AC not working' },
+];
+
+const CHANNELS = {
+  housekeeping:    { name: 'Housekeeping',   tg_chat: '@radbat_housekeeping',   manager: 'Maria K.' },
+  front_desk:      { name: 'Front Desk',     tg_chat: '@radbat_frontdesk',      manager: 'Anna F.' },
+  restaurant:      { name: 'Restaurant',     tg_chat: '@radbat_restaurant',     manager: 'David T.' },
+  spa:             { name: 'Spa',            tg_chat: '@radbat_spa',            manager: 'Lela B.' },
+  concierge:       { name: 'Concierge',      tg_chat: '@radbat_concierge',      manager: 'Giorgi M.' },
+  manager_on_duty: { name: 'Duty Manager',   tg_chat: '@radbat_dutymanager',    manager: 'Tornike R.' },
+};
+
+// =============================================================
+// MAIN APP
+// =============================================================
+function App() {
+  const [tab, setTab] = useState('flow');
+  const [requests, setRequests] = useState(INITIAL_REQUESTS);
+  const [serviceConfigs, setServiceConfigs] = useState(SERVICES);
+
+  return (
+    <div className="min-h-screen">
+      <header style={{ borderBottom: '1px solid var(--border-subtle)', background: 'var(--bg-panel)' }}>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white" style={{ background: 'linear-gradient(135deg, #009FE3, #c5a059)', fontSize: 18 }}>S</div>
+            <div>
+              <div className="text-sm font-semibold leading-none">Service Request Automation</div>
+              <div className="leading-none mt-1" style={{ fontSize: 10, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>QR → TELEGRAM → FULFILLMENT · v.1</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        <div className="tab-row">
+          <button className={`tab-btn ${tab === 'flow' ? 'active' : ''}`} onClick={() => setTab('flow')}>Live demo</button>
+          <button className={`tab-btn ${tab === 'queue' ? 'active' : ''}`} onClick={() => setTab('queue')}>Manager queue</button>
+          <button className={`tab-btn ${tab === 'config' ? 'active' : ''}`} onClick={() => setTab('config')}>Service config</button>
+          <button className={`tab-btn ${tab === 'arch' ? 'active' : ''}`} onClick={() => setTab('arch')}>Architecture</button>
+        </div>
+
+        {tab === 'flow' && <FlowTab requests={requests} setRequests={setRequests} serviceConfigs={serviceConfigs} />}
+        {tab === 'queue' && <QueueTab requests={requests} setRequests={setRequests} serviceConfigs={serviceConfigs} />}
+        {tab === 'config' && <ConfigTab serviceConfigs={serviceConfigs} setServiceConfigs={setServiceConfigs} />}
+        {tab === 'arch' && <ArchTab />}
+      </main>
+    </div>
+  );
+}
+
+// =============================================================
+// FLOW TAB — guest PWA + Telegram side by side
+// =============================================================
+function FlowTab({ requests, setRequests, serviceConfigs }) {
+  const [step, setStep] = useState('browse'); // browse | submit | sent | acked
+  const [selectedService, setSelectedService] = useState(null);
+  const [telegramMsg, setTelegramMsg] = useState(null);
+  const [requestNotes, setRequestNotes] = useState('');
+
+  const tap = (svc) => {
+    setSelectedService(svc);
+    setStep('submit');
+  };
+
+  const submit = () => {
+    setStep('sent');
+    const channel = CHANNELS[selectedService.channel];
+    setTimeout(() => {
+      setTelegramMsg({
+        service: selectedService,
+        channel,
+        room: '412',
+        notes: requestNotes,
+        timestamp: new Date(),
+      });
+    }, 800);
+  };
+
+  const acknowledge = () => {
+    setStep('acked');
+    const newRequest = {
+      id: `r${Date.now()}`,
+      service_id: selectedService.id,
+      room: '412',
+      status: 'acknowledged',
+      created: 0,
+      by: CHANNELS[selectedService.channel].manager,
+      notes: requestNotes,
+    };
+    setRequests([newRequest, ...requests]);
+  };
+
+  const reset = () => {
+    setStep('browse');
+    setSelectedService(null);
+    setTelegramMsg(null);
+    setRequestNotes('');
+  };
+
+  return (
+    <>
+      <div className="panel">
+        <div className="panel-title">Live demo — guest scan triggers manager Telegram</div>
+        <div className="panel-sub">Tap a service in the phone (left). Watch the request flow into the Telegram channel for the routed staff team (right). Click "Acknowledge" in Telegram to close the loop.</div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Phone — Guest PWA */}
+        <div>
+          <div className="lbl text-center mb-3">GUEST PWA · ROOM 412</div>
+          <div className="phone-frame">
+            <div className="phone-notch"></div>
+            <div className="phone-screen">
+
+              {step === 'browse' && (
+                <>
+                  <div className="text-center mb-5">
+                    <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>RADISSON BLU BATUMI</div>
+                    <h2 className="text-lg font-bold mt-1">How can we help?</h2>
+                    <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Room 412</div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    {serviceConfigs.filter(s => s.id !== 'urgent-issue').map(svc => (
+                      <div key={svc.id} className="svc-tile" onClick={() => tap(svc)}>
+                        <div className="svc-tile-emoji">{svc.emoji}</div>
+                        <div className="svc-tile-name">{svc.name}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-4">
+                    <button className="btn w-full" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--tcp-red)', border: '1px solid rgba(239, 68, 68, 0.3)', justifyContent: 'center' }} onClick={() => tap(serviceConfigs.find(s => s.id === 'urgent-issue'))}>
+                      🚨 Urgent assistance
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {step === 'submit' && selectedService && (
+                <>
+                  <div className="text-center mb-4">
+                    <div style={{ fontSize: 48 }}>{selectedService.emoji}</div>
+                    <h2 className="text-lg font-bold mt-2">{selectedService.name}</h2>
+                  </div>
+
+                  <div className="rounded-lg p-3 mb-4" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+                    <div className="lbl mb-2">Anything we should know?</div>
+                    <textarea
+                      className="input"
+                      style={{ resize: 'none' }}
+                      rows="4"
+                      placeholder={selectedService.id === 'late-checkout' ? 'e.g., "until 3 PM please"' : 'Optional note'}
+                      value={requestNotes}
+                      onChange={e => setRequestNotes(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="rounded-lg p-3 mb-4" style={{ background: 'rgba(0, 159, 227, 0.05)', border: '1px solid rgba(0, 159, 227, 0.2)' }}>
+                    <div className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      Sending to <strong style={{ color: 'var(--tcp-blue)' }}>{CHANNELS[selectedService.channel].name}</strong>.<br />
+                      Expected response: <strong style={{ color: 'var(--text-primary)' }}>~{selectedService.sla_min} minutes</strong>
+                    </div>
+                  </div>
+
+                  <button className="btn btn-primary w-full" style={{ justifyContent: 'center' }} onClick={submit}>
+                    Send request
+                  </button>
+                  <button className="btn w-full mt-2" style={{ background: 'transparent', color: 'var(--text-tertiary)', justifyContent: 'center', fontSize: 11 }} onClick={reset}>
+                    ← Back
+                  </button>
+                </>
+              )}
+
+              {step === 'sent' && (
+                <>
+                  <div className="text-center pt-12">
+                    <div className="inline-flex w-16 h-16 rounded-full items-center justify-center" style={{ background: 'rgba(245, 158, 11, 0.15)', border: '2px solid var(--tcp-amber)', fontSize: 28 }}>
+                      📤
+                    </div>
+                    <h2 className="text-lg font-bold mt-4">Request sent</h2>
+                    <div className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>Waiting for staff to acknowledge…</div>
+
+                    <div className="mt-6 rounded-lg p-3 text-left" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+                      <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Status</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="req-status-pill pill-pending">●  PENDING</span>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {step === 'acked' && selectedService && (
+                <>
+                  <div className="text-center pt-12">
+                    <div className="inline-flex w-16 h-16 rounded-full items-center justify-center" style={{ background: 'rgba(0, 159, 227, 0.15)', border: '2px solid var(--tcp-blue)', fontSize: 28 }}>
+                      ✓
+                    </div>
+                    <h2 className="text-lg font-bold mt-4">Acknowledged</h2>
+                    <div className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>{CHANNELS[selectedService.channel].manager} is on it</div>
+
+                    <div className="mt-6 rounded-lg p-3 text-left" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+                      <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>Status</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="req-status-pill pill-acknowledged">●  ACKNOWLEDGED</span>
+                      </div>
+                    </div>
+
+                    <button className="btn btn-secondary w-full mt-6" style={{ justifyContent: 'center' }} onClick={reset}>
+                      ↻ Send another request
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Telegram side */}
+        <div>
+          <div className="lbl text-center mb-3">{telegramMsg ? `TELEGRAM · ${telegramMsg.channel.name}` : 'TELEGRAM (waiting…)'}</div>
+          <div className="tg-frame" style={{ minHeight: 400 }}>
+            {!telegramMsg ? (
+              <div className="text-center py-20" style={{ color: '#7a8d9d', fontSize: 13 }}>
+                <div style={{ fontSize: 36, opacity: 0.4 }}>📱</div>
+                <div className="mt-3">No requests yet.</div>
+                <div className="mt-1" style={{ fontSize: 11 }}>Tap a service tile on the phone →</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 11, color: '#7a8d9d', marginBottom: 8 }}>
+                  TravelConnectProBot · {telegramMsg.timestamp.toLocaleTimeString()}
+                </div>
+                <div className="tg-message">
+                  <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 6 }}>
+                    {telegramMsg.service.emoji} {telegramMsg.service.name}
+                  </div>
+                  <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 4 }}>
+                    Room <strong>{telegramMsg.room}</strong> · {CHANNELS[telegramMsg.service.channel].name}
+                  </div>
+                  {telegramMsg.notes && (
+                    <div style={{ fontSize: 12, fontStyle: 'italic', marginTop: 8, padding: 8, background: 'rgba(255,255,255,0.1)', borderRadius: 6 }}>
+                      "{telegramMsg.notes}"
+                    </div>
+                  )}
+                  <div style={{ fontSize: 11, opacity: 0.65, marginTop: 8 }}>
+                    SLA: respond within {telegramMsg.service.sla_min} min · Priority: {telegramMsg.service.priority}
+                  </div>
+                </div>
+
+                {step === 'sent' && (
+                  <div className="tg-buttons">
+                    <button className="tg-btn primary" onClick={acknowledge}>✓ Acknowledge</button>
+                    <button className="tg-btn">📋 In progress</button>
+                    <button className="tg-btn success">✅ Done</button>
+                  </div>
+                )}
+
+                {step === 'acked' && (
+                  <>
+                    <div className="tg-message" style={{ background: '#1d3a52', fontSize: 11, opacity: 0.85 }}>
+                      <strong>{CHANNELS[telegramMsg.service.channel].manager}</strong> acknowledged this request — guest has been notified.
+                    </div>
+                    <div className="tg-buttons">
+                      <button className="tg-btn">📋 In progress</button>
+                      <button className="tg-btn success">✅ Mark done</button>
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+
+          <div className="panel mt-4">
+            <div className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>FALLBACK CHAIN</div>
+            <div className="text-xs space-y-1.5" style={{ color: 'var(--text-secondary)' }}>
+              <div>1. Telegram (primary, &lt; 1s delivery)</div>
+              <div>2. Email if Telegram delivery fails (~5s)</div>
+              <div>3. SMS if email bounces or after 2min idle (paid fallback)</div>
+              <div>4. PWA push notification to manager's mobile (if app installed)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =============================================================
+// QUEUE TAB — manager view of all open requests
+// =============================================================
+function QueueTab({ requests, setRequests, serviceConfigs }) {
+  const [filter, setFilter] = useState('all');
+
+  const updateStatus = (id, status) => {
+    setRequests(requests.map(r => r.id === id ? { ...r, status } : r));
+  };
+
+  const visibleRequests = requests.filter(r => filter === 'all' || r.status === filter);
+  const counts = {
+    pending: requests.filter(r => r.status === 'pending').length,
+    acknowledged: requests.filter(r => r.status === 'acknowledged').length,
+    'in-progress': requests.filter(r => r.status === 'in-progress').length,
+    completed: requests.filter(r => r.status === 'completed').length,
+  };
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--tcp-amber)' }}>{counts.pending}</div>
+          <div className="stat-lbl">Pending</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--tcp-blue)' }}>{counts.acknowledged}</div>
+          <div className="stat-lbl">Acknowledged</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--tcp-purple)' }}>{counts['in-progress']}</div>
+          <div className="stat-lbl">In progress</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--tcp-green)' }}>{counts.completed}</div>
+          <div className="stat-lbl">Done today</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <div>
+            <div className="panel-title" style={{ marginBottom: 0 }}>Manager queue — all service requests</div>
+            <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Live view. Same data the manager sees in the admin dashboard.</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <select className="input" style={{ width: 'auto' }} value={filter} onChange={e => setFilter(e.target.value)}>
+              <option value="all">All requests</option>
+              <option value="pending">Pending only</option>
+              <option value="acknowledged">Acknowledged</option>
+              <option value="in-progress">In progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {visibleRequests.length === 0
+            ? <div className="text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No requests in this status</div>
+            : visibleRequests.map(req => {
+                const svc = serviceConfigs.find(s => s.id === req.service_id);
+                return (
+                  <RequestRow key={req.id} req={req} service={svc} onStatus={updateStatus} />
+                );
+              })
+          }
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RequestRow({ req, service, onStatus }) {
+  if (!service) return null;
+  const channel = CHANNELS[service.channel];
+  const isOverdue = req.status === 'pending' && req.created > service.sla_min;
+
+  return (
+    <div className="req-card flex items-center gap-3">
+      <div className={`prio-bar prio-${service.priority}`}></div>
+      <div style={{ fontSize: 24 }}>{service.emoji}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold">{service.name}</span>
+          <span className="text-xs font-mono" style={{ color: 'var(--text-tertiary)' }}>· Room {req.room}</span>
+        </div>
+        <div className="text-xs mt-0.5 flex flex-wrap gap-x-2" style={{ color: 'var(--text-tertiary)' }}>
+          <span>→ {channel.name}</span>
+          {req.by && <span>· by {req.by}</span>}
+          <span>· {req.created}m ago</span>
+          {req.notes && <span>· "{req.notes}"</span>}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {isOverdue ? (
+          <span className="req-status-pill pill-overdue">⚠ OVERDUE</span>
+        ) : (
+          <span className={`req-status-pill pill-${req.status}`}>● {req.status.toUpperCase().replace('-',' ')}</span>
+        )}
+        {req.status === 'pending' && <button className="btn btn-secondary text-xs" onClick={() => onStatus(req.id, 'acknowledged')}>Ack</button>}
+        {req.status === 'acknowledged' && <button className="btn btn-secondary text-xs" onClick={() => onStatus(req.id, 'in-progress')}>Start</button>}
+        {req.status === 'in-progress' && <button className="btn btn-success text-xs" onClick={() => onStatus(req.id, 'completed')}>Done</button>}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================
+// CONFIG TAB — service routing & SLA setup
+// =============================================================
+function ConfigTab({ serviceConfigs, setServiceConfigs }) {
+  const update = (id, field, value) => {
+    setServiceConfigs(serviceConfigs.map(s => s.id === id ? { ...s, [field]: value } : s));
+  };
+
+  return (
+    <>
+      <div className="panel">
+        <div className="panel-title">Service catalog — per property</div>
+        <div className="panel-sub">Manager configures: which services are available, who they route to, expected response time, and whether to auto-fulfill or require approval. SuperAdmin can lock specific services if hotel hasn't paid for them.</div>
+      </div>
+
+      <div className="space-y-2">
+        {serviceConfigs.map(svc => {
+          const channel = CHANNELS[svc.channel];
+          return (
+            <div key={svc.id} className="panel" style={{ marginBottom: 0, padding: 16 }}>
+              <div className="flex items-center gap-4">
+                <div style={{ fontSize: 28 }}>{svc.emoji}</div>
+
+                <div className="flex-1 grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="md:col-span-1">
+                    <div className="text-sm font-semibold">{svc.name}</div>
+                    <div className="font-mono text-xs" style={{ color: 'var(--text-tertiary)' }}>id: {svc.id}</div>
+                  </div>
+
+                  <div>
+                    <div className="lbl">Routes to</div>
+                    <select className="input" value={svc.channel} onChange={e => update(svc.id, 'channel', e.target.value)} style={{ padding: '6px 10px', fontSize: 12 }}>
+                      {Object.entries(CHANNELS).map(([id, c]) => (
+                        <option key={id} value={id} style={{ background: 'var(--bg-panel)' }}>{c.name}</option>
+                      ))}
+                    </select>
+                    <div className="font-mono text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>{channel.tg_chat}</div>
+                  </div>
+
+                  <div>
+                    <div className="lbl">Priority</div>
+                    <select className="input" value={svc.priority} onChange={e => update(svc.id, 'priority', e.target.value)} style={{ padding: '6px 10px', fontSize: 12 }}>
+                      <option value="low" style={{ background: 'var(--bg-panel)' }}>🟢 Low</option>
+                      <option value="medium" style={{ background: 'var(--bg-panel)' }}>🟡 Medium</option>
+                      <option value="high" style={{ background: 'var(--bg-panel)' }}>🔴 High</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="lbl">SLA (min)</div>
+                    <input className="input font-mono" type="number" value={svc.sla_min} onChange={e => update(svc.id, 'sla_min', parseInt(e.target.value) || 0)} style={{ padding: '6px 10px', fontSize: 12 }} />
+                  </div>
+
+                  <div>
+                    <div className="lbl">Mode</div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <div className={`toggle ${svc.auto ? 'on' : ''}`} onClick={() => update(svc.id, 'auto', !svc.auto)}></div>
+                      <span className="text-xs" style={{ color: svc.auto ? 'var(--tcp-green)' : 'var(--text-tertiary)' }}>
+                        {svc.auto ? 'Auto-route' : 'Approval'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="panel mt-5" style={{ background: 'rgba(0, 159, 227, 0.04)', borderColor: 'rgba(0, 159, 227, 0.2)' }}>
+        <div className="text-xs font-semibold mb-2" style={{ color: 'var(--tcp-blue)' }}>Routing channels — Telegram chats per role</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+          {Object.entries(CHANNELS).map(([id, c]) => (
+            <div key={id} className="flex items-center gap-3">
+              <div style={{ fontSize: 16 }}>👤</div>
+              <div className="flex-1">
+                <div className="text-sm font-medium">{c.name}</div>
+                <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  <span className="font-mono">{c.tg_chat}</span> · {c.manager}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =============================================================
+// ARCHITECTURE TAB
+// =============================================================
+function ArchTab() {
+  return (
+    <>
+      <div className="panel">
+        <div className="panel-title">End-to-end flow — what runs where</div>
+
+        <div className="space-y-3 mt-4">
+          <ArchStep num="1" title="Guest scans service QR" detail="Static QR encodes signed JWT. Token contains hotel_id + qr_id + room_id (decoded from current room TV state)." color="var(--tcp-blue)" />
+          <ArchStep num="2" title="PWA loads service catalog" detail="Mobile PWA fetches available services for this hotel from Supabase. Shows tiles. Guest taps a tile." color="var(--tcp-blue)" />
+          <ArchStep num="3" title="Guest submits request" detail="POST to Edge Function /service-request with { service_id, room_id, notes, device_hash }. Insert row into service_requests table with status='pending'." color="var(--tcp-amber)" />
+          <ArchStep num="4" title="Edge Function fans out notifications" detail="Looks up service routing config → finds Telegram chat for that channel → calls Telegram Bot API with formatted message + inline buttons." color="var(--tcp-amber)" />
+          <ArchStep num="5" title="Manager taps Telegram button" detail="Telegram webhook hits /telegram-callback Edge Function. Function maps button to status update, writes to DB, triggers Realtime broadcast." color="var(--tcp-purple)" />
+          <ArchStep num="6" title="Guest PWA updates in real time" detail="PWA subscribed to Realtime channel for this device_hash. Status flips from 'pending' → 'acknowledged' without refresh." color="var(--tcp-green)" />
+          <ArchStep num="7" title="SLA monitor runs" detail="pg_cron job every minute checks pending requests > SLA threshold → re-fires notification with 'OVERDUE' tag → escalates via SMS fallback if still no response." color="var(--tcp-red)" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="panel" style={{ marginBottom: 0 }}>
+          <div className="panel-title">Database tables</div>
+          <pre className="font-mono text-xs leading-relaxed mt-3" style={{ color: 'var(--tcp-green)' }}>{`service_catalog (per hotel)
+  service_id, name, emoji, priority,
+  channel_id, sla_min, auto_route,
+  enabled
+
+service_channels (per hotel)
+  channel_id, name, telegram_chat_id,
+  email_fallback, sms_fallback,
+  manager_name
+
+service_requests (every guest request)
+  id, hotel_id, room_id, service_id,
+  status, device_hash, notes,
+  created_at, ack_at, completed_at,
+  ack_by, telegram_message_id
+
+sla_breaches (audit log)
+  request_id, breached_at,
+  escalation_level, notified`}</pre>
+        </div>
+
+        <div className="panel" style={{ marginBottom: 0 }}>
+          <div className="panel-title">Edge Functions</div>
+          <pre className="font-mono text-xs leading-relaxed mt-3" style={{ color: 'var(--tcp-blue)' }}>{`POST /service-request
+  Insert request, fan out notifications
+
+POST /telegram-callback
+  Handle inline button presses
+  Map button → status update
+
+GET /service-status/:id
+  Poll fallback if Realtime drops
+
+cron /sla-monitor
+  Every 60s, find overdue requests
+  Re-notify, escalate fallback chain
+
+POST /notify-fallback
+  Email → SMS → push notification
+  Tries each, marks delivered`}</pre>
+        </div>
+      </div>
+
+      <div className="panel mt-4" style={{ background: 'rgba(46, 204, 113, 0.04)', borderColor: 'rgba(46, 204, 113, 0.2)' }}>
+        <div className="text-sm font-semibold mb-2" style={{ color: 'var(--tcp-green)' }}>Why build the Telegram pipeline yourself</div>
+        <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          A Zapier or Make integration looks easy upfront, but adds a third-party dependency to your hotel's response time. When Zapier hits a daily quota or has a service incident, your "clean my room" requests stop firing. Hotel relationships are damaged. Building one Telegram bot directly via the Bot API is one Edge Function file (~80 lines), runs on your own Supabase infrastructure, and never hits a third-party rate limit. Email and SMS as fallback can also be direct (Resend, Twilio) without needing an orchestration layer.
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ArchStep({ num, title, detail, color }) {
+  return (
+    <div className="flex gap-3 items-start p-3 rounded-lg" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+      <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center font-mono text-xs font-bold" style={{ background: `${color}22`, color, border: `1px solid ${color}55` }}>{num}</div>
+      <div>
+        <div className="text-sm font-semibold mb-1">{title}</div>
+        <div className="text-xs" style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>{detail}</div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>

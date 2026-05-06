@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Connect Pro — Admin v.1.1</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tcp-blue: #009FE3;
+    --tcp-blue-dark: #0077AD;
+    --tcp-gold: #c5a059;
+    --tcp-green: #2ecc71;
+    --tcp-red: #ef4444;
+    --tcp-amber: #f59e0b;
+    --bg-base: #0a0a0d;
+    --bg-panel: #14141a;
+    --bg-panel-2: #1c1c24;
+    --bg-input: #0f0f14;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-default: rgba(255,255,255,0.1);
+    --border-strong: rgba(255,255,255,0.18);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+  }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+  .bg-base { background: var(--bg-base); }
+  .bg-panel { background: var(--bg-panel); }
+  .bg-panel-2 { background: var(--bg-panel-2); }
+  .bg-input { background: var(--bg-input); }
+  .border-subtle { border-color: var(--border-subtle); }
+  .border-default { border-color: var(--border-default); }
+  .border-strong { border-color: var(--border-strong); }
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+  .text-tcp-blue { color: var(--tcp-blue); }
+  .text-tcp-gold { color: var(--tcp-gold); }
+  .text-tcp-green { color: var(--tcp-green); }
+  .bg-tcp-blue { background: var(--tcp-blue); }
+  .bg-tcp-gold { background: var(--tcp-gold); }
+  .border-tcp-blue { border-color: var(--tcp-blue); }
+  .ring-tcp-blue:focus { box-shadow: 0 0 0 2px rgba(0, 159, 227, 0.4); outline: none; }
+
+  /* Form controls */
+  .input, .select, .textarea {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 6px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    transition: border-color .15s, box-shadow .15s;
+    font-family: inherit;
+  }
+  .input:focus, .select:focus, .textarea:focus {
+    outline: none;
+    border-color: var(--tcp-blue);
+    box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
+  }
+  .input.mono, .textarea.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .input::placeholder { color: var(--text-tertiary); }
+  label.lbl {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+  .lbl-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; line-height: 1.4; font-weight: 400; text-transform: none; letter-spacing: normal; }
+
+  /* Section card */
+  .section-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .section-head {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-panel-2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-title { font-size: 14px; font-weight: 600; }
+  .section-body { padding: 20px; }
+
+  /* Sidebar nav */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all .15s;
+    border: 1px solid transparent;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(0, 159, 227, 0.1);
+    color: var(--tcp-blue);
+    border-color: rgba(0, 159, 227, 0.2);
+  }
+  .nav-item .ico { font-size: 15px; }
+
+  /* Buttons */
+  .btn {
+    padding: 8px 14px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--tcp-blue);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--tcp-blue-dark); }
+  .btn-secondary {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+  .btn-secondary:hover { background: rgba(255,255,255,0.08); }
+  .btn-danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--tcp-red);
+    border-color: rgba(239, 68, 68, 0.25);
+  }
+  .btn-danger:hover { background: rgba(239, 68, 68, 0.15); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { background: rgba(255,255,255,0.04); color: var(--text-primary); }
+
+  /* Tag pill */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border: 1px solid;
+  }
+  .tag-active { background: rgba(46, 204, 113, 0.1); color: var(--tcp-green); border-color: rgba(46, 204, 113, 0.25); }
+  .tag-trial { background: rgba(245, 158, 11, 0.1); color: var(--tcp-amber); border-color: rgba(245, 158, 11, 0.25); }
+  .tag-blue { background: rgba(0, 159, 227, 0.1); color: var(--tcp-blue); border-color: rgba(0, 159, 227, 0.25); }
+  .tag-gray { background: rgba(255,255,255,0.05); color: var(--text-secondary); border-color: var(--border-default); }
+  .tag-auto { background: rgba(46, 204, 113, 0.08); color: var(--tcp-green); border-color: rgba(46, 204, 113, 0.2); }
+
+  /* Toggle switch */
+  .toggle {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    flex-shrink: 0;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: var(--text-tertiary);
+    border-radius: 50%;
+    transition: all .2s;
+  }
+  .toggle.on { background: rgba(0, 159, 227, 0.2); border-color: var(--tcp-blue); }
+  .toggle.on::after { left: 18px; background: var(--tcp-blue); }
+
+  /* Color swatch */
+  .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-default);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Stat card */
+  .stat-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .stat-num { font-size: 28px; font-weight: 600; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--text-tertiary); margin-top: 6px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+  .stat-trend { font-size: 11px; margin-top: 6px; font-weight: 500; }
+
+  /* Carousel sequence */
+  .carousel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    transition: all .15s;
+  }
+  .carousel-item:hover { border-color: var(--border-strong); }
+  .carousel-num {
+    width: 26px; height: 26px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  .item-game { border-left: 3px solid var(--tcp-amber); }
+  .item-map  { border-left: 3px solid var(--tcp-green); }
+  .item-airport { border-left: 3px solid var(--tcp-blue); }
+
+  /* Airport card */
+  .airport-card {
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: all .15s;
+  }
+  .airport-card:hover { border-color: var(--border-strong); }
+
+  /* Code block (JSON preview) */
+  .json-pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--tcp-green);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    background: var(--bg-panel-2);
+    border: 1px solid var(--border-strong);
+    border-left: 3px solid var(--tcp-green);
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    z-index: 1000;
+    max-width: 380px;
+    animation: slideUp 0.3s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Progress badge */
+  .badge-built { background: rgba(46, 204, 113, 0.1); color: var(--tcp-green); border: 1px solid rgba(46, 204, 113, 0.25); }
+  .badge-partial { background: rgba(245, 158, 11, 0.1); color: var(--tcp-amber); border: 1px solid rgba(245, 158, 11, 0.25); }
+  .badge-needed { background: rgba(239, 68, 68, 0.1); color: var(--tcp-red); border: 1px solid rgba(239, 68, 68, 0.25); }
+
+  /* Drag indicator */
+  .drag-handle {
+    color: var(--text-tertiary);
+    cursor: grab;
+    user-select: none;
+    font-size: 12px;
+    padding: 0 4px;
+  }
+  .drag-handle:hover { color: var(--text-secondary); }
+
+  /* Status dot */
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+  .dot-on { background: var(--tcp-green); box-shadow: 0 0 6px rgba(46, 204, 113, 0.5); }
+  .dot-warn { background: var(--tcp-amber); }
+  .dot-off { background: var(--tcp-red); }
+
+  /* Phase strip */
+  .phase-strip {
+    background: linear-gradient(90deg, rgba(0, 159, 227, 0.06) 0%, transparent 50%);
+    border: 1px solid rgba(0, 159, 227, 0.15);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+</style>
+</head>
+<body class="bg-base text-primary">
+
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+// ============================================================
+// MOCK DATA
+// ============================================================
+const PROPERTIES = [
+  { id: 'rad-bat-001', name: 'Radisson Blu Batumi', status: 'active', lobby: 3, rooms: 80, online: 76 },
+  { id: 'rad-tbs-002', name: 'Radisson Blu Tbilisi', status: 'active', lobby: 2, rooms: 95, online: 88 },
+  { id: 'sheraton-bat', name: 'Sheraton Batumi', status: 'trial', lobby: 1, rooms: 0, online: 1 },
+  { id: 'hilton-bat', name: 'Hilton Batumi Garden Inn', status: 'active', lobby: 2, rooms: 60, online: 58 },
+];
+
+const INITIAL_CONFIG = {
+  client: {
+    client_id: 'RAD-BAT-001',
+    name: 'Radisson Blu Batumi',
+    internal_ref: 'TCP-2026-001',
+    status: 'active',
+    website: 'radisson.com/batumi',
+    phones: ['+995 32 2 402 200', '+995 599 11 22 33'],
+    address: '1 Ninoshvili Street, Batumi, Georgia',
+    coordinates: { lat: 41.6546, lng: 41.6384 },
+    timezone: 'Asia/Tbilisi',
+    country: 'GE',
+  },
+  admin: {
+    display_name: 'Radisson Batumi — Front Desk',
+    email: 'admin@radissonbatumi.ge',
+    role: 'property_admin',
+    last_login: '2026-04-26T09:14:00Z',
+  },
+  languages: ['en', 'ru', 'ka', 'tr'],
+  welcome: {
+    timing_sec: 6,
+    highlight_offer: 'Join us at the Sky Bar for sunset wine tasting at 19:00.',
+  },
+  airports: [
+    { id: 'a1', iata: 'BUS', name: 'Batumi International', priority: 'primary', drive_min: 18, fare: '25–40 GEL', enabled: true },
+    { id: 'a2', iata: 'TBS', name: 'Tbilisi International', priority: 'secondary', drive_min: 320, fare: '280–350 GEL', enabled: true },
+  ],
+  branding: {
+    logo_url: 'https://images.seeklogo.com/logo-png/48/2/radisson-blu-logo-png_seeklogo-480374.png',
+    logo_dark_url: '',
+    logo_height: 90,
+    logo_filter: 'invert',
+    colors: {
+      brand_primary: '#003366',
+      brand_accent: '#c5a059',
+      bg_base: '#0a0a0d',
+      widget_header: '#009FE3',
+      solar_accent: '#ffcc00',
+    }
+  },
+  carousel: {
+    sequence: [
+      { type: 'game', id: 'roulette', label: 'Roulette Wheel', duration: 90 },
+      { type: 'map', id: 'map', label: 'Area Map', duration: 60 },
+      { type: 'game', id: 'dice', label: 'Smart Roller', duration: 90 },
+      { type: 'airport', id: 'BUS', label: 'Airport — BUS', duration: 120 },
+      { type: 'game', id: 'memory', label: 'Memory Matrix', duration: 90 },
+      { type: 'map', id: 'map', label: 'Area Map', duration: 60 },
+      { type: 'game', id: 'shell', label: 'Shell Game', duration: 90 },
+      { type: 'airport', id: 'TBS', label: 'Airport — TBS', duration: 120 },
+      { type: 'game', id: 'text-wheel', label: 'Rewards Wheel', duration: 90 },
+      { type: 'map', id: 'map', label: 'Area Map', duration: 60 },
+    ]
+  },
+  ticker: {
+    announcements: [
+      '📢 CHECK-OUT: Standard check-out time is 12:00 PM.',
+      '🚐 AIRPORT SHUTTLE: Departs every hour from the main lobby.',
+    ],
+    events: [
+      '🍷 BATUMI WINE FESTIVAL: Today on the Boulevard from 16:00.',
+      '🎭 ALPHABET TOWER: Live Jazz Performance tonight at 21:00.',
+    ],
+    offers: [
+      '🛎️ SPA: 20% off all deep-tissue massages before 14:00.',
+      '🍽️ DINING: Fresh Black Sea seafood at the restaurant tonight.',
+    ],
+    sports: { football: true, basketball: true, tennis: false, f1: false },
+    category_duration_sec: 30,
+  },
+  qr_cards: [
+    { id: 'wifi', label: 'GUEST WI-FI', url: 'WIFI:S:Radisson_Guest;T:WPA;P:guest123;;', enabled: true },
+    { id: 'checkout', label: 'LATE CHECKOUT', url: 'https://radisson.com/batumi/services/checkout', enabled: true },
+    { id: 'menu', label: 'RESTAURANT MENU', url: 'https://radisson.com/batumi/dining/menu', enabled: true },
+    { id: 'spa', label: 'SPA & GYM', url: 'https://radisson.com/batumi/wellness/spa', enabled: true },
+    { id: 'rewards', label: 'RADISSON REWARDS', url: 'https://radissonhotels.com/rewards', enabled: true },
+  ],
+  media: {
+    bgm_url: 'https://ice1.somafm.com/groovesalad-128-mp3',
+    bgm_label: 'SomaFM Groove Salad',
+    bgm_status: 'online',
+    bgm_last_checked: '2026-04-27T10:42:00Z',
+    bgm_volume: 70,
+    use_corporate_video: false,
+    corporate_video_url: '',
+    corporate_video_label: '',
+    feratel_cam_id: 'DA7D2F22-8600-464D-9D4F-CDB04014A6C5',
+    cam_popup_interval_min: 10,
+  },
+  games_enabled: {
+    roulette: true,
+    dice: true,
+    memory: true,
+    shell: true,
+    text_wheel: true,
+    spin_win: false,
+  },
+  messages: [
+    { id: 'm1', from: 'super', from_name: 'TCP SuperAdmin', subject: 'New feature available: Goal popups', body: 'Hi! We just rolled out live goal popups for football matches. Enable them in the Ticker tab under Sports. Reply if you have questions.', sent_at: '2026-04-26T14:20:00Z', read: true, category: 'feature' },
+    { id: 'm2', from: 'manager', from_name: 'You', subject: 'Spa QR not working', body: 'Hello, the Spa QR code seems to redirect to a 404 page. Could you check?', sent_at: '2026-04-25T09:15:00Z', read: true, category: 'bug' },
+    { id: 'm3', from: 'super', from_name: 'TCP SuperAdmin', subject: 'Re: Spa QR not working', body: 'Fixed — the spa team had moved the URL. Updated in your config. Should be working now.', sent_at: '2026-04-25T11:30:00Z', read: true, category: 'bug' },
+    { id: 'm4', from: 'super', from_name: 'TCP SuperAdmin', subject: 'Monthly invoice ready', body: 'Your April invoice (€340) is ready. 3 lobby screens + 80 room TVs. Payment due by May 5.', sent_at: '2026-04-24T08:00:00Z', read: false, category: 'billing' },
+    { id: 'm5', from: 'super', from_name: 'TCP SuperAdmin', subject: 'Room 309 offline alert', body: 'Room 309 TV has been offline for 6 hours. Could you ask housekeeping to check the connection?', sent_at: '2026-04-23T16:45:00Z', read: false, category: 'alert' },
+  ],
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+const TYPE_COLORS = {
+  game: { dot: 'var(--tcp-amber)', cls: 'item-game', label: 'Game' },
+  map:  { dot: 'var(--tcp-green)', cls: 'item-map',  label: 'Map' },
+  airport: { dot: 'var(--tcp-blue)', cls: 'item-airport', label: 'Airport' },
+};
+
+function formatTotalTime(sequence) {
+  const total = sequence.reduce((s, i) => s + (i.duration || 0), 0);
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}m ${s}s`;
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+function App() {
+  const [tab, setTab] = useState('dashboard');
+  const [config, setConfig] = useState(INITIAL_CONFIG);
+  const [showJson, setShowJson] = useState(false);
+  const [propertyId, setPropertyId] = useState('rad-bat-001');
+  const [toast, setToast] = useState(null);
+  const [role, setRole] = useState('super'); // 'super' | 'manager'
+
+  const setSection = (key, value) => setConfig({ ...config, [key]: value });
+  const setNested = (section, field, value) => setConfig({ ...config, [section]: { ...config[section], [field]: value } });
+
+  const saveConfig = () => {
+    const text = role === 'super'
+      ? 'Configuration pushed to fleet. All screens will update within 2 seconds.'
+      : 'Saved. SuperAdmin will review and apply your changes.';
+    setToast({ type: 'success', text });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  // Switch to a tab that's allowed for the new role
+  const switchRole = (newRole) => {
+    setRole(newRole);
+    const allowedTabs = newRole === 'super' ? SUPER_TABS : MANAGER_TABS;
+    if (!allowedTabs.includes(tab)) setTab('dashboard');
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <TopBar
+        role={role}
+        onRoleChange={switchRole}
+        propertyId={propertyId}
+        onPropertyChange={setPropertyId}
+        onSave={saveConfig}
+        showJson={showJson}
+        onToggleJson={() => setShowJson(!showJson)}
+      />
+      <div className="flex-1 flex" style={{ minHeight: 'calc(100vh - 60px)' }}>
+        <Sidebar tab={tab} onTab={setTab} role={role} unreadMessages={config.messages.filter(m => !m.read && m.from === 'super').length} />
+        <main className="flex-1 overflow-auto p-6">
+          <div className={`flex gap-6 ${showJson ? 'flex-row' : ''}`}>
+            <div className="flex-1 space-y-5 min-w-0">
+              {tab === 'dashboard' && <DashboardTab config={config} role={role} />}
+              {tab === 'client' && role === 'super' && <ClientTab config={config} setSection={setSection} setNested={setNested} />}
+              {tab === 'airports' && role === 'super' && <AirportsTab config={config} setSection={setSection} />}
+              {tab === 'branding' && role === 'super' && <BrandingTab config={config} setNested={setNested} />}
+              {tab === 'carousel' && <CarouselTab config={config} setSection={setSection} setNested={setNested} role={role} />}
+              {tab === 'ticker' && <TickerTab config={config} setNested={setNested} setSection={setSection} role={role} />}
+              {tab === 'qr' && <QrTab config={config} setSection={setSection} role={role} />}
+              {tab === 'welcome' && <WelcomeTab config={config} setNested={setNested} role={role} />}
+              {tab === 'media' && <MediaTab config={config} setNested={setNested} setToast={setToast} />}
+              {tab === 'messages' && <MessagesTab config={config} setSection={setSection} role={role} />}
+            </div>
+            {showJson && <JsonPreviewPanel config={config} />}
+          </div>
+        </main>
+      </div>
+      {toast && <Toast {...toast} />}
+    </div>
+  );
+}
+
+const SUPER_TABS = ['dashboard', 'client', 'airports', 'branding', 'carousel', 'ticker', 'qr', 'welcome', 'media', 'messages'];
+const MANAGER_TABS = ['dashboard', 'ticker', 'media', 'carousel', 'qr', 'welcome', 'messages'];
+
+// ============================================================
+// TOP BAR
+// ============================================================
+function TopBar({ role, onRoleChange, propertyId, onPropertyChange, onSave, showJson, onToggleJson }) {
+  const property = PROPERTIES.find(p => p.id === propertyId);
+  const isSuper = role === 'super';
+  return (
+    <header className="border-b border-subtle bg-panel" style={{ height: 60 }}>
+      <div className="h-full px-6 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold" style={{ background: 'linear-gradient(135deg, #009FE3, #c5a059)', color: 'white', fontSize: 16 }}>T</div>
+            <div>
+              <div className="text-sm font-semibold leading-none">Travel Connect Pro</div>
+              <div className="text-tertiary leading-none mt-1" style={{ fontSize: 10, letterSpacing: 1.5 }}>{isSuper ? 'SUPERADMIN' : 'HOTEL MANAGER'} · v.1.1</div>
+            </div>
+          </div>
+
+          {/* Role switcher */}
+          <div className="flex items-center bg-input rounded-lg border border-default p-0.5">
+            <button
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${isSuper ? 'bg-panel-2 text-primary' : 'text-tertiary hover:text-secondary'}`}
+              onClick={() => onRoleChange('super')}
+            >
+              SuperAdmin
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${!isSuper ? 'bg-panel-2 text-primary' : 'text-tertiary hover:text-secondary'}`}
+              onClick={() => onRoleChange('manager')}
+            >
+              Hotel Manager
+            </button>
+          </div>
+
+          {/* Property switcher (SuperAdmin only) */}
+          {isSuper ? (
+            <div className="flex items-center gap-2 bg-input rounded-lg px-3 py-1.5 border border-default" style={{ minWidth: 280 }}>
+              <span className="text-tertiary" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1 }}>PROPERTY</span>
+              <select
+                className="bg-transparent text-sm font-medium flex-1 outline-none cursor-pointer"
+                value={propertyId}
+                onChange={e => onPropertyChange(e.target.value)}
+                style={{ color: 'var(--text-primary)' }}
+              >
+                {PROPERTIES.map(p => (
+                  <option key={p.id} value={p.id} style={{ background: 'var(--bg-panel)' }}>{p.name}</option>
+                ))}
+              </select>
+              <span className={`tag ${property.status === 'active' ? 'tag-active' : 'tag-trial'}`}>{property.status}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-input rounded-lg px-3 py-1.5 border border-default">
+              <span className="text-tertiary" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1 }}>YOUR PROPERTY</span>
+              <span className="text-sm font-medium">{property.name}</span>
+              <span className={`tag ${property.status === 'active' ? 'tag-active' : 'tag-trial'}`}>{property.status}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 px-3 text-secondary" style={{ fontSize: 11 }}>
+            <span className="dot dot-on"></span>
+            <span>Realtime: connected</span>
+          </div>
+          {isSuper && (
+            <button className="btn btn-ghost" onClick={onToggleJson}>
+              {showJson ? '◧ Hide JSON' : '◧ Show JSON'}
+            </button>
+          )}
+          <button className="btn btn-primary" onClick={onSave}>
+            <span>↑</span>
+            <span>{isSuper ? 'Push to fleet' : 'Save changes'}</span>
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+// ============================================================
+// SIDEBAR
+// ============================================================
+function Sidebar({ tab, onTab, role, unreadMessages }) {
+  const allItems = [
+    { id: 'dashboard', label: 'Dashboard', ico: '◉', roles: ['super', 'manager'] },
+    { id: 'client', label: 'Client identity', ico: '◇', roles: ['super'] },
+    { id: 'airports', label: 'Airports', ico: '✈', roles: ['super'] },
+    { id: 'branding', label: 'Branding', ico: '◐', roles: ['super'] },
+    { id: 'media', label: 'Media & sound', ico: '♫', roles: ['super', 'manager'] },
+    { id: 'carousel', label: 'Carousel', ico: '↻', roles: ['super', 'manager'] },
+    { id: 'ticker', label: 'Ticker', ico: '≡', roles: ['super', 'manager'] },
+    { id: 'qr', label: 'QR cards', ico: '▦', roles: ['super', 'manager'] },
+    { id: 'welcome', label: 'Welcome screen', ico: '☼', roles: ['super', 'manager'] },
+    { id: 'messages', label: 'Messages', ico: '✉', roles: ['super', 'manager'], badge: unreadMessages },
+  ];
+  const items = allItems.filter(item => item.roles.includes(role));
+
+  return (
+    <aside className="border-r border-subtle bg-panel p-3" style={{ width: 220, flexShrink: 0 }}>
+      <div className="text-tertiary px-3 pt-1 pb-3" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5 }}>
+        {role === 'super' ? 'CONFIGURATION' : 'YOUR HOTEL'}
+      </div>
+      <nav className="space-y-1">
+        {items.map(item => (
+          <div key={item.id} className={`nav-item ${tab === item.id ? 'active' : ''}`} onClick={() => onTab(item.id)}>
+            <span className="ico">{item.ico}</span>
+            <span className="flex-1">{item.label}</span>
+            {item.badge > 0 && (
+              <span className="text-xs font-semibold px-1.5 py-0.5 rounded" style={{ background: 'var(--tcp-red)', color: 'white', fontSize: 10 }}>
+                {item.badge}
+              </span>
+            )}
+          </div>
+        ))}
+      </nav>
+
+      {role === 'super' && (
+        <>
+          <div className="text-tertiary px-3 pt-6 pb-3" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 1.5 }}>COMING IN V.2</div>
+          <nav className="space-y-1 opacity-50 pointer-events-none">
+            <div className="nav-item"><span className="ico">⚏</span>Game rules engine</div>
+            <div className="nav-item"><span className="ico">▤</span>QR analytics</div>
+            <div className="nav-item"><span className="ico">📺</span>TV hardware</div>
+            <div className="nav-item"><span className="ico">⚡</span>API rules</div>
+            <div className="nav-item"><span className="ico">⚽</span>Goal popups</div>
+          </nav>
+        </>
+      )}
+
+      {role === 'manager' && (
+        <div className="mt-6 mx-3 p-3 rounded-lg border border-subtle" style={{ background: 'rgba(0, 159, 227, 0.05)' }}>
+          <div className="text-xs font-semibold text-tcp-blue mb-1">Limited access</div>
+          <div className="text-xs text-tertiary leading-relaxed">
+            You can edit content & media. For brand, airports, or API changes, message the SuperAdmin.
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+// ============================================================
+// DASHBOARD TAB
+// ============================================================
+function DashboardTab({ config, role }) {
+  if (role === 'manager') return <ManagerDashboard config={config} />;
+  return <SuperDashboard config={config} />;
+}
+
+function ManagerDashboard({ config }) {
+  return (
+    <>
+      <PageTitle title="Dashboard" subtitle="Your property's analytics, screen status, and recent activity. Updates in real time." />
+
+      <div className="phase-strip">
+        <span style={{ fontSize: 18 }}>👋</span>
+        <div className="text-sm text-secondary">
+          Welcome back, <strong className="text-primary">{config.admin.display_name}</strong>. You have <strong className="text-primary">{config.messages.filter(m => !m.read && m.from === 'super').length} unread messages</strong> from the SuperAdmin.
+        </div>
+      </div>
+
+      {/* Top stats — guest engagement */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <StatCard num="284" label="QR scans today" trend="+12% vs yesterday" trendColor="var(--tcp-green)" />
+        <StatCard num="47" label="Spa bookings" trend="+21% this week" trendColor="var(--tcp-green)" />
+        <StatCard num="91" label="Menu views" trend="+5% this week" trendColor="var(--tcp-green)" />
+        <StatCard num="48%" label="TV→Mobile rate" trend="conversion" trendColor="var(--text-secondary)" />
+        <StatCard num="12.3K" label="Total this month" trend="all QR types" trendColor="var(--text-secondary)" />
+      </div>
+
+      {/* AI Insight */}
+      <div className="section-card" style={{ borderLeft: '3px solid var(--tcp-amber)' }}>
+        <div className="section-head">
+          <div className="section-title flex items-center gap-2"><span style={{ color: 'var(--tcp-amber)' }}>✦</span> Daily insight</div>
+          <span className="text-tertiary" style={{ fontSize: 11 }}>generated 08:00 by Claude AI</span>
+        </div>
+        <div className="section-body">
+          <p className="text-sm text-secondary leading-relaxed">
+            Spa QR scans spiked <strong className="text-primary">44% this week</strong>, correlating with UV index exceeding 7 on 4 of 7 days — guests appear to be seeking indoor wellness when outdoor conditions are intense. Recommend scheduling the Spa offer QR slide immediately after the UV alert widget in the carousel. Wi-Fi scans peak at <strong className="text-primary">15:00–16:00</strong>, suggesting check-in traffic — consider adding a welcome offer QR at that carousel position.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* QR breakdown */}
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">QR scans today — by type</div>
+          </div>
+          <div className="section-body space-y-3">
+            <BarRow label="Wi-Fi" value={284} max={284} color="var(--tcp-blue)" />
+            <BarRow label="Menu" value={91} max={284} color="var(--tcp-green)" />
+            <BarRow label="Spa" value={47} max={284} color="var(--tcp-gold)" />
+            <BarRow label="Late checkout" value={33} max={284} color="var(--tcp-amber)" />
+            <BarRow label="Rewards" value={19} max={284} color="var(--tcp-red)" />
+          </div>
+        </div>
+
+        {/* Screen status */}
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">Your screens</div>
+            <span className="text-tertiary" style={{ fontSize: 11 }}>updates live</span>
+          </div>
+          <div className="section-body space-y-2">
+            <ScreenStatusRow status="on" name="Lobby Landscape — Main" meta="Online · 12s ago" />
+            <ScreenStatusRow status="on" name="Lobby Portrait — Reception" meta="Online · 8s ago" />
+            <ScreenStatusRow status="on" name="Room TVs (74 of 80 online)" meta="6 offline — see Messages" />
+            <ScreenStatusRow status="warn" name="Room 215" meta="No signal · 4 min ago" />
+            <ScreenStatusRow status="off" name="Room 309" meta="Offline · 6h ago" />
+          </div>
+        </div>
+      </div>
+
+      {/* Recent activity */}
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Recent activity</div>
+          <span className="text-tertiary" style={{ fontSize: 11 }}>last 24h</span>
+        </div>
+        <div className="section-body space-y-3">
+          <ActivityRow time="11:42" text="You updated ticker announcements" detail="Added: 'Pool closing at 22:00 today'" />
+          <ActivityRow time="08:14" text="Config pushed to all 76 active screens" detail="Branding colors updated by SuperAdmin" />
+          <ActivityRow time="07:42" text="Spa QR scanned 12 times" detail="Peak rate this week" />
+          <ActivityRow time="07:30" text="Daily AI insight generated" detail="Spa engagement up 21% this week" />
+          <ActivityRow time="06:00" text="Currency rates auto-refreshed" detail="USD 2.65 → 2.67" />
+        </div>
+      </div>
+    </>
+  );
+}
+
+function BarRow({ label, value, max, color }) {
+  const pct = (value / max) * 100;
+  return (
+    <div className="flex items-center gap-3">
+      <div className="text-sm text-secondary" style={{ width: 110 }}>{label}</div>
+      <div className="flex-1 bg-input rounded h-5 overflow-hidden border border-subtle">
+        <div className="h-full rounded transition-all" style={{ width: `${pct}%`, background: color, opacity: 0.7 }}></div>
+      </div>
+      <div className="font-mono text-sm font-medium" style={{ width: 40, textAlign: 'right' }}>{value}</div>
+    </div>
+  );
+}
+
+function SuperDashboard({ config }) {
+  return (
+    <>
+      <PageTitle title="Dashboard" subtitle="At-a-glance status for this property. Real-time updates via Supabase Realtime." />
+
+      <div className="phase-strip">
+        <span style={{ fontSize: 18 }}>👋</span>
+        <div className="text-sm text-secondary">
+          Welcome to v.1.1. This admin now serves both SuperAdmin (you) and Hotel Manager (limited access). Switch role in the top bar to preview the manager view.
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <StatCard num="3" label="Lobby screens" trend="2 online · 1 standby" trendColor="var(--tcp-green)" />
+        <StatCard num="80" label="Room TVs" trend="74 online · 6 offline" trendColor="var(--tcp-amber)" />
+        <StatCard num="284" label="QR scans today" trend="+12% vs yesterday" trendColor="var(--tcp-green)" />
+        <StatCard num="12.3K" label="Total scans / month" trend="across all QRs" trendColor="var(--text-secondary)" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">Screen status</div>
+            <span className="text-tertiary" style={{ fontSize: 11 }}>updates live</span>
+          </div>
+          <div className="section-body space-y-2">
+            <ScreenStatusRow status="on" name="Lobby Landscape — Main Display" meta="Online · last seen 12s ago · 1920×1080" />
+            <ScreenStatusRow status="on" name="Lobby Portrait — Reception" meta="Online · last seen 8s ago · 1080×1920" />
+            <ScreenStatusRow status="on" name="Room 412 — Hotel TV" meta="Online · last seen 28s ago · LG webOS" />
+            <ScreenStatusRow status="warn" name="Room 215 — Hotel TV" meta="No signal · last seen 4 min ago · Samsung Tizen" />
+            <ScreenStatusRow status="off" name="Room 309 — Hotel TV" meta="Offline · last seen 2h ago · alert sent" />
+          </div>
+        </div>
+
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">Recent activity</div>
+            <span className="text-tertiary" style={{ fontSize: 11 }}>last 24h</span>
+          </div>
+          <div className="section-body space-y-3">
+            <ActivityRow time="08:14" text="Config pushed to all 76 active screens" detail="Branding colors updated" />
+            <ActivityRow time="07:42" text="Spa QR scanned 12 times" detail="Peak rate this week" />
+            <ActivityRow time="07:30" text="Daily AI insight generated" detail="Spa engagement up 21% this week" />
+            <ActivityRow time="06:00" text="Currency rates auto-refreshed" detail="USD 2.65 → 2.67" />
+            <ActivityRow time="00:00" text="QR scan counters reset for new day" detail="" />
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function StatCard({ num, label, trend, trendColor }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-num">{num}</div>
+      <div className="stat-label">{label}</div>
+      <div className="stat-trend" style={{ color: trendColor }}>{trend}</div>
+    </div>
+  );
+}
+
+function ScreenStatusRow({ status, name, meta }) {
+  const cls = status === 'on' ? 'dot-on' : status === 'warn' ? 'dot-warn' : 'dot-off';
+  return (
+    <div className="flex items-center gap-3 py-1.5">
+      <span className={`dot ${cls}`}></span>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium truncate">{name}</div>
+        <div className="text-tertiary" style={{ fontSize: 11 }}>{meta}</div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({ time, text, detail }) {
+  return (
+    <div className="flex gap-3 items-start">
+      <div className="font-mono text-tertiary" style={{ fontSize: 11, paddingTop: 2 }}>{time}</div>
+      <div className="flex-1">
+        <div className="text-sm">{text}</div>
+        {detail && <div className="text-tertiary" style={{ fontSize: 11 }}>{detail}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// CLIENT IDENTITY TAB
+// ============================================================
+function ClientTab({ config, setSection, setNested }) {
+  const langOptions = [
+    { code: 'en', name: 'English' },
+    { code: 'ru', name: 'Русский' },
+    { code: 'ka', name: 'ქართული' },
+    { code: 'tr', name: 'Türkçe' },
+    { code: 'fr', name: 'Français' },
+    { code: 'es', name: 'Español' },
+    { code: 'ar', name: 'العربية' },
+    { code: 'zh', name: '中文' },
+    { code: 'ja', name: '日本語' },
+  ];
+
+  const toggleLang = (code) => {
+    const cur = config.languages;
+    const next = cur.includes(code) ? cur.filter(c => c !== code) : [...cur, code];
+    if (next.length > 0) setSection('languages', next);
+  };
+
+  return (
+    <>
+      <PageTitle title="Client identity" subtitle="Core property record. Coordinates and IATA airports drive auto-generated weather, sun, map, and flight data." />
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Identity</div>
+          <span className={`tag ${config.client.status === 'active' ? 'tag-active' : 'tag-trial'}`}>{config.client.status}</span>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Client ID" hint="Auto-generated, read-only">
+            <input className="input mono" value={config.client.client_id} readOnly />
+          </Field>
+          <Field label="Internal reference">
+            <input className="input mono" value={config.client.internal_ref} onChange={e => setNested('client', 'internal_ref', e.target.value)} />
+          </Field>
+          <Field label="Hotel name">
+            <input className="input" value={config.client.name} onChange={e => setNested('client', 'name', e.target.value)} />
+          </Field>
+          <Field label="Website">
+            <input className="input" value={config.client.website} onChange={e => setNested('client', 'website', e.target.value)} />
+          </Field>
+          <Field label="Phone — front desk">
+            <input className="input" value={config.client.phones[0]} onChange={e => setNested('client', 'phones', [e.target.value, config.client.phones[1] || ''])} />
+          </Field>
+          <Field label="Phone — concierge">
+            <input className="input" value={config.client.phones[1] || ''} onChange={e => setNested('client', 'phones', [config.client.phones[0], e.target.value])} />
+          </Field>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Location</div>
+          <span className="tag tag-auto">drives auto-generation</span>
+        </div>
+        <div className="section-body space-y-4">
+          <Field label="Address" hint="Coordinates auto-resolved via Mapbox geocoding when address is saved">
+            <input className="input" value={config.client.address} onChange={e => setNested('client', 'address', e.target.value)} />
+          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Field label="Latitude (auto)">
+              <input className="input mono" value={config.client.coordinates.lat} readOnly />
+            </Field>
+            <Field label="Longitude (auto)">
+              <input className="input mono" value={config.client.coordinates.lng} readOnly />
+            </Field>
+            <Field label="Timezone (auto)">
+              <input className="input mono" value={config.client.timezone} readOnly />
+            </Field>
+          </div>
+
+          <div className="phase-strip" style={{ background: 'rgba(46, 204, 113, 0.05)', borderColor: 'rgba(46, 204, 113, 0.2)' }}>
+            <span className="dot dot-on"></span>
+            <div className="text-sm text-secondary">
+              <strong style={{ color: 'var(--tcp-green)' }}>Auto-generated from these coordinates:</strong> hotel weather, sunrise/sunset times, area map, currency rates (from country code GE).
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Property admin</div>
+          <span className="tag tag-blue">v.1 • single admin per property</span>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Display name" hint="Shown in activity logs">
+            <input className="input" value={config.admin.display_name} onChange={e => setNested('admin', 'display_name', e.target.value)} />
+          </Field>
+          <Field label="Login email">
+            <input className="input" value={config.admin.email} onChange={e => setNested('admin', 'email', e.target.value)} />
+          </Field>
+          <Field label="Role">
+            <select className="select" value={config.admin.role} onChange={e => setNested('admin', 'role', e.target.value)}>
+              <option value="property_admin">Property admin</option>
+              <option value="super_admin">Super admin</option>
+              <option value="display">Display (read-only)</option>
+            </select>
+          </Field>
+          <Field label="Last login (auto)">
+            <input className="input mono text-secondary" value={config.admin.last_login} readOnly />
+          </Field>
+          <div className="md:col-span-2 flex gap-2">
+            <button className="btn btn-secondary">Send password reset email</button>
+            <button className="btn btn-secondary">Generate temporary password</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Languages</div>
+          <span className="text-tertiary" style={{ fontSize: 11 }}>{config.languages.length} selected · first = default</span>
+        </div>
+        <div className="section-body">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+            {langOptions.map(lang => {
+              const on = config.languages.includes(lang.code);
+              const isDefault = config.languages[0] === lang.code;
+              return (
+                <button
+                  key={lang.code}
+                  className={`flex flex-col items-center justify-center py-3 rounded-lg border transition-colors ${on ? 'border-strong' : 'border-default opacity-50'}`}
+                  style={{ background: on ? 'rgba(0,159,227,0.08)' : 'var(--bg-input)' }}
+                  onClick={() => toggleLang(lang.code)}
+                >
+                  <span className="font-mono text-sm font-semibold">{lang.code.toUpperCase()}</span>
+                  <span className="text-tertiary" style={{ fontSize: 11 }}>{lang.name}</span>
+                  {isDefault && <span className="tag tag-blue mt-1" style={{ fontSize: 9 }}>default</span>}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================
+// AIRPORTS TAB
+// ============================================================
+function AirportsTab({ config, setSection }) {
+  const updateAirport = (id, field, value) => {
+    const next = config.airports.map(a => a.id === id ? { ...a, [field]: value } : a);
+    setSection('airports', next);
+  };
+  const removeAirport = (id) => setSection('airports', config.airports.filter(a => a.id !== id));
+  const addAirport = () => {
+    const newA = { id: `a${Date.now()}`, iata: '', name: '', priority: 'secondary', drive_min: 0, fare: '', enabled: true };
+    setSection('airports', [...config.airports, newA]);
+  };
+
+  return (
+    <>
+      <PageTitle title="Airports" subtitle="Connect this property to one or more airports. Each airport auto-generates a flight slide for the carousel and weather data for that city." />
+
+      <div className="phase-strip">
+        <span style={{ fontSize: 18 }}>✈</span>
+        <div className="text-sm text-secondary">
+          Adding an airport automatically creates a Flights slide in the carousel and pulls weather for that city. To remove from carousel without deleting data, just disable it below.
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {config.airports.map((airport, idx) => (
+          <div key={airport.id} className="airport-card">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="font-mono text-lg font-semibold text-tcp-blue">{airport.iata || '—'}</div>
+                <div>
+                  <div className="text-sm font-medium">{airport.name || 'Unnamed airport'}</div>
+                  <div className="text-tertiary" style={{ fontSize: 11 }}>
+                    {airport.priority === 'primary' ? 'Primary destination' : 'Secondary destination'}
+                  </div>
+                </div>
+                {airport.enabled
+                  ? <span className="tag tag-active">enabled</span>
+                  : <span className="tag tag-gray">disabled</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-tertiary" style={{ fontSize: 11 }}>enabled</span>
+                <div className={`toggle ${airport.enabled ? 'on' : ''}`} onClick={() => updateAirport(airport.id, 'enabled', !airport.enabled)}></div>
+                <button className="btn btn-danger" onClick={() => removeAirport(airport.id)}>Remove</button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Field label="IATA code" hint="3-letter code">
+                <input className="input mono" maxLength="3" value={airport.iata} onChange={e => updateAirport(airport.id, 'iata', e.target.value.toUpperCase())} />
+              </Field>
+              <Field label="Display name">
+                <input className="input" value={airport.name} onChange={e => updateAirport(airport.id, 'name', e.target.value)} />
+              </Field>
+              <Field label="Priority">
+                <select className="select" value={airport.priority} onChange={e => updateAirport(airport.id, 'priority', e.target.value)}>
+                  <option value="primary">Primary</option>
+                  <option value="secondary">Secondary</option>
+                </select>
+              </Field>
+              <Field label="Drive time (min)">
+                <input className="input mono" type="number" value={airport.drive_min} onChange={e => updateAirport(airport.id, 'drive_min', parseInt(e.target.value) || 0)} />
+              </Field>
+              <Field label="Taxi fare estimate">
+                <input className="input" value={airport.fare} onChange={e => updateAirport(airport.id, 'fare', e.target.value)} placeholder="e.g. 25–40 GEL" />
+              </Field>
+              <div className="md:col-span-3 flex items-end">
+                <div className="phase-strip w-full" style={{ background: 'rgba(46, 204, 113, 0.04)', borderColor: 'rgba(46, 204, 113, 0.15)', padding: '8px 12px' }}>
+                  <span className="dot dot-on"></span>
+                  <div className="text-sm text-secondary">
+                    Auto-generated: <strong style={{ color: 'var(--tcp-green)' }}>{airport.iata} flights slide</strong>, weather for {airport.name || 'this city'}, drive-time block.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn btn-secondary w-full justify-center py-3" onClick={addAirport} style={{ borderStyle: 'dashed' }}>
+        + Add another airport
+      </button>
+    </>
+  );
+}
+
+// ============================================================
+// BRANDING TAB
+// ============================================================
+function BrandingTab({ config, setNested }) {
+  const setColor = (key, value) => {
+    setNested('branding', 'colors', { ...config.branding.colors, [key]: value });
+  };
+
+  return (
+    <>
+      <PageTitle title="Branding" subtitle="Logo and color tokens that apply across all displays for this property." />
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Logo</div>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <Field label="Primary logo URL" hint="Will move to Supabase Storage upload in v.2">
+              <input className="input mono" value={config.branding.logo_url} onChange={e => setNested('branding', 'logo_url', e.target.value)} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3 mt-3">
+              <Field label="Display height (px)">
+                <input className="input mono" type="number" value={config.branding.logo_height} onChange={e => setNested('branding', 'logo_height', parseInt(e.target.value))} />
+              </Field>
+              <Field label="Filter">
+                <select className="select" value={config.branding.logo_filter} onChange={e => setNested('branding', 'logo_filter', e.target.value)}>
+                  <option value="none">None</option>
+                  <option value="invert">Invert (for dark bg)</option>
+                  <option value="brightness">Brightness</option>
+                </select>
+              </Field>
+            </div>
+          </div>
+          <div>
+            <label className="lbl">Preview</label>
+            <div className="bg-input rounded-lg border border-default p-6 flex items-center justify-center" style={{ minHeight: 140 }}>
+              {config.branding.logo_url ? (
+                <img
+                  src={config.branding.logo_url}
+                  alt="Logo"
+                  style={{
+                    height: config.branding.logo_height,
+                    filter: config.branding.logo_filter === 'invert' ? 'brightness(0) invert(1)' : config.branding.logo_filter === 'brightness' ? 'brightness(1.5)' : 'none',
+                    maxWidth: '90%'
+                  }}
+                />
+              ) : (
+                <span className="text-tertiary">No logo set</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Color tokens</div>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Object.entries(config.branding.colors).map(([key, val]) => (
+            <ColorRow key={key} name={key} value={val} onChange={(v) => setColor(key, v)} />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function ColorRow({ name, value, onChange }) {
+  const labels = {
+    brand_primary: 'Primary brand',
+    brand_accent: 'Accent (gold)',
+    bg_base: 'Background base',
+    widget_header: 'Widget header',
+    solar_accent: 'Solar accent',
+  };
+  return (
+    <div className="flex items-center gap-3 p-3 bg-input rounded-lg border border-subtle">
+      <input
+        type="color"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        className="swatch p-0 border-0"
+        style={{ background: value }}
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium">{labels[name] || name}</div>
+        <div className="font-mono text-tertiary" style={{ fontSize: 11 }}>{name}</div>
+      </div>
+      <input
+        className="input mono"
+        style={{ width: 100 }}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// CAROUSEL TAB
+// ============================================================
+function CarouselTab({ config, setSection, setNested, role }) {
+  const moveItem = (idx, direction) => {
+    const seq = [...config.carousel.sequence];
+    const target = idx + direction;
+    if (target < 0 || target >= seq.length) return;
+    [seq[idx], seq[target]] = [seq[target], seq[idx]];
+    setSection('carousel', { ...config.carousel, sequence: seq });
+  };
+  const removeItem = (idx) => {
+    const seq = config.carousel.sequence.filter((_, i) => i !== idx);
+    setSection('carousel', { ...config.carousel, sequence: seq });
+  };
+  const updateDuration = (idx, value) => {
+    const seq = [...config.carousel.sequence];
+    seq[idx] = { ...seq[idx], duration: parseInt(value) || 0 };
+    setSection('carousel', { ...config.carousel, sequence: seq });
+  };
+  const addItem = (type, id, label) => {
+    const seq = [...config.carousel.sequence, { type, id, label, duration: 90 }];
+    setSection('carousel', { ...config.carousel, sequence: seq });
+  };
+  const toggleGame = (gameId) => {
+    setSection('games_enabled', { ...config.games_enabled, [gameId]: !config.games_enabled[gameId] });
+  };
+
+  const games = [
+    { id: 'roulette', label: 'Roulette Wheel', desc: 'Spinning wheel with random rewards' },
+    { id: 'dice', label: 'Smart Roller', desc: 'Dice game — 7 or 11 wins' },
+    { id: 'memory', label: 'Memory Matrix', desc: 'Themed memory card game' },
+    { id: 'shell', label: 'Shell Game', desc: 'Find the ball under the cup' },
+    { id: 'text_wheel', label: 'Rewards Wheel', desc: 'Text-based prize wheel' },
+    { id: 'spin_win', label: 'Spin to Win', desc: 'Interactive — best for room TVs (v.2)' },
+  ];
+
+  const isManager = role === 'manager';
+
+  return (
+    <>
+      <PageTitle title="Carousel" subtitle={isManager ? "Activate or deactivate games on your screens. SuperAdmin manages the sequence and timing." : "The main rotating panel. Only games, the area map, and airport flight slides. Weather and QR cards live permanently in the sidebar — not here."} />
+
+      {/* Game activation panel (visible to both, but managers can ONLY do this) */}
+      <div className="section-card" style={{ borderLeft: '3px solid var(--tcp-amber)' }}>
+        <div className="section-head">
+          <div className="section-title">Active games</div>
+          <span className="text-tertiary" style={{ fontSize: 11 }}>
+            {Object.values(config.games_enabled).filter(Boolean).length} of {games.length} enabled
+          </span>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-3">
+          {games.map(game => {
+            const on = config.games_enabled[game.id];
+            return (
+              <div key={game.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${on ? 'border-default' : 'border-subtle opacity-60'}`} style={{ background: on ? 'rgba(245, 158, 11, 0.04)' : 'var(--bg-input)' }}>
+                <div className="flex-1">
+                  <div className="text-sm font-medium">{game.label}</div>
+                  <div className="text-tertiary" style={{ fontSize: 11 }}>{game.desc}</div>
+                </div>
+                <div className={`toggle ${on ? 'on' : ''}`} onClick={() => toggleGame(game.id)}></div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {isManager ? (
+        <div className="phase-strip">
+          <span style={{ fontSize: 18 }}>ℹ</span>
+          <div className="text-sm text-secondary">
+            The carousel sequence below is set by SuperAdmin. To change order or timing, send a message via the <strong className="text-primary">Messages</strong> tab.
+          </div>
+        </div>
+      ) : (
+        <div className="phase-strip">
+          <span style={{ fontSize: 18 }}>↻</span>
+          <div className="text-sm text-secondary">
+            Total loop time: <strong className="text-primary">{formatTotalTime(config.carousel.sequence)}</strong> · {config.carousel.sequence.length} slides · loops back to start automatically
+          </div>
+        </div>
+      )}
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Sequence</div>
+          {!isManager && (
+            <div className="flex gap-2">
+              <button className="btn btn-secondary text-xs">↺ Set all to 60s</button>
+              <button className="btn btn-secondary text-xs">↺ Set all to 90s</button>
+            </div>
+          )}
+          {isManager && <span className="tag tag-gray">read-only</span>}
+        </div>
+        <div className="section-body space-y-2">
+          {config.carousel.sequence.map((item, idx) => {
+            const c = TYPE_COLORS[item.type];
+            const isGameDisabled = item.type === 'game' && !config.games_enabled[item.id];
+            return (
+              <div key={idx} className={`carousel-item ${c.cls}`} style={isGameDisabled ? { opacity: 0.5 } : {}}>
+                {!isManager && <span className="drag-handle">⋮⋮</span>}
+                <div className="carousel-num">{idx + 1}</div>
+                <span className="tag tag-gray" style={{ minWidth: 64, justifyContent: 'center' }}>{c.label}</span>
+                <div className="flex-1 text-sm font-medium">
+                  {item.label}
+                  {isGameDisabled && <span className="tag tag-gray ml-2" style={{ fontSize: 9 }}>game disabled — slide skipped</span>}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    className="input mono text-center"
+                    style={{ width: 72, padding: '6px 8px' }}
+                    value={item.duration}
+                    onChange={e => updateDuration(idx, e.target.value)}
+                    disabled={isManager}
+                  />
+                  <span className="text-tertiary text-xs">sec</span>
+                </div>
+                {!isManager && (
+                  <div className="flex gap-1">
+                    <button className="btn btn-ghost px-2" onClick={() => moveItem(idx, -1)} disabled={idx === 0}>↑</button>
+                    <button className="btn btn-ghost px-2" onClick={() => moveItem(idx, 1)} disabled={idx === config.carousel.sequence.length - 1}>↓</button>
+                    <button className="btn btn-ghost px-2" onClick={() => removeItem(idx)} style={{ color: 'var(--tcp-red)' }}>×</button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {!isManager && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <AddItemPanel
+            title="Add a game"
+            color="var(--tcp-amber)"
+            items={games.filter(g => config.games_enabled[g.id]).map(g => ({ id: g.id, label: g.label }))}
+            onAdd={(item) => addItem('game', item.id, item.label)}
+          />
+          <AddItemPanel
+            title="Add map slide"
+            color="var(--tcp-green)"
+            items={[{ id: 'map', label: 'Area Map' }]}
+            onAdd={() => addItem('map', 'map', 'Area Map')}
+          />
+          <AddItemPanel
+            title="Add airport slide"
+            color="var(--tcp-blue)"
+            items={config.airports.map(a => ({ id: a.iata, label: `${a.iata} — ${a.name}` }))}
+            onAdd={(item) => addItem('airport', item.id, `Airport — ${item.id}`)}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function AddItemPanel({ title, color, items, onAdd }) {
+  return (
+    <div className="section-card" style={{ borderTopColor: color, borderTopWidth: 3 }}>
+      <div className="section-head">
+        <div className="section-title text-sm">{title}</div>
+      </div>
+      <div className="section-body space-y-1.5">
+        {items.length === 0
+          ? <div className="text-tertiary text-sm">No options. Configure airports first.</div>
+          : items.map(item => (
+            <button
+              key={item.id}
+              className="w-full text-left px-3 py-2 bg-input rounded-md hover:bg-panel-2 transition-colors text-sm border border-subtle hover:border-default"
+              onClick={() => onAdd(item)}
+            >
+              + {item.label}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// TICKER TAB
+// ============================================================
+function TickerTab({ config, setNested, setSection, role }) {
+  const updateLine = (key, idx, value) => {
+    const arr = [...config.ticker[key]];
+    arr[idx] = value;
+    setNested('ticker', key, arr);
+  };
+  const addLine = (key) => setNested('ticker', key, [...config.ticker[key], '']);
+  const removeLine = (key, idx) => setNested('ticker', key, config.ticker[key].filter((_, i) => i !== idx));
+  const toggleSport = (sport) => {
+    setNested('ticker', 'sports', { ...config.ticker.sports, [sport]: !config.ticker.sports[sport] });
+  };
+
+  const isManager = role === 'manager';
+
+  return (
+    <>
+      <PageTitle title="Ticker" subtitle={isManager ? "Manage the text shown in the scrolling bar at the bottom of your screens. Sports come from the API — toggled by SuperAdmin." : "The scrolling bar at the bottom. Cycles through announcements, events, offers, and live sports — admin controls the text, sports come from API."} />
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <TickerList title="Announcements" color="var(--tcp-red)" items={config.ticker.announcements} onUpdate={(i, v) => updateLine('announcements', i, v)} onAdd={() => addLine('announcements')} onRemove={(i) => removeLine('announcements', i)} />
+        <TickerList title="Local events" color="var(--tcp-green)" items={config.ticker.events} onUpdate={(i, v) => updateLine('events', i, v)} onAdd={() => addLine('events')} onRemove={(i) => removeLine('events', i)} />
+        <TickerList title="Hotel offers" color="var(--tcp-gold)" items={config.ticker.offers} onUpdate={(i, v) => updateLine('offers', i, v)} onAdd={() => addLine('offers')} onRemove={(i) => removeLine('offers', i)} />
+      </div>
+
+      {!isManager && (
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">Live sports — algorithmic feed</div>
+            <span className="tag tag-blue">SuperAdmin only · via API-Sports</span>
+          </div>
+          <div className="section-body">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              {Object.entries(config.ticker.sports).map(([sport, on]) => (
+                <button
+                  key={sport}
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${on ? 'border-strong' : 'border-default opacity-60'}`}
+                  style={{ background: on ? 'rgba(0,159,227,0.06)' : 'var(--bg-input)' }}
+                  onClick={() => toggleSport(sport)}
+                >
+                  <span className="text-sm font-medium capitalize">{sport.replace('_', ' ')}</span>
+                  <div className={`toggle ${on ? 'on' : ''}`}></div>
+                </button>
+              ))}
+            </div>
+            <div className="phase-strip">
+              <span style={{ fontSize: 18 }}>⚽</span>
+              <div className="text-sm text-secondary">
+                <strong className="text-primary">Goal popups</strong> appear automatically when scores change — no extra config. Turn on a sport here and live events for that sport will trigger overlay alerts on all screens.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isManager && (
+        <div className="section-card">
+          <div className="section-head">
+            <div className="section-title">Live sports (read-only)</div>
+            <span className="tag tag-gray">Set by SuperAdmin</span>
+          </div>
+          <div className="section-body">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(config.ticker.sports).map(([sport, on]) => (
+                <span key={sport} className={`tag ${on ? 'tag-active' : 'tag-gray'}`}>
+                  {sport} {on ? 'on' : 'off'}
+                </span>
+              ))}
+            </div>
+            <div className="text-tertiary text-xs mt-3">To request changes to sports settings, send a message to the SuperAdmin.</div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TickerList({ title, color, items, onUpdate, onAdd, onRemove }) {
+  return (
+    <div className="section-card" style={{ borderTopColor: color, borderTopWidth: 3 }}>
+      <div className="section-head">
+        <div className="section-title text-sm">{title}</div>
+        <span className="text-tertiary text-xs">{items.length}</span>
+      </div>
+      <div className="section-body space-y-2">
+        {items.map((item, idx) => (
+          <div key={idx} className="flex gap-1.5">
+            <textarea
+              className="textarea"
+              rows="2"
+              style={{ resize: 'none' }}
+              value={item}
+              onChange={e => onUpdate(idx, e.target.value)}
+            />
+            <button className="btn btn-ghost px-2" onClick={() => onRemove(idx)} style={{ color: 'var(--tcp-red)' }}>×</button>
+          </div>
+        ))}
+        <button className="btn btn-secondary w-full justify-center text-xs" onClick={onAdd}>+ Add line</button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// QR CARDS TAB
+// ============================================================
+function QrTab({ config, setSection, role }) {
+  const update = (id, field, value) => {
+    const next = config.qr_cards.map(q => q.id === id ? { ...q, [field]: value } : q);
+    setSection('qr_cards', next);
+  };
+  const remove = (id) => setSection('qr_cards', config.qr_cards.filter(q => q.id !== id));
+  const add = () => {
+    const id = `qr-${Date.now()}`;
+    setSection('qr_cards', [...config.qr_cards, { id, label: 'NEW QR', url: 'https://example.com', enabled: true }]);
+  };
+
+  return (
+    <>
+      <PageTitle title="QR cards" subtitle="The carousel of QR codes shown in the right sidebar. Each QR points to a tracked redirect URL — guest scans are logged automatically." />
+
+      <div className="phase-strip">
+        <span style={{ fontSize: 18 }}>▦</span>
+        <div className="text-sm text-secondary">
+          <strong className="text-primary">v.2 will add:</strong> per-QR analytics, conversion tracking, A/B testing, time-window rules, daily caps. For now: enable, label, and set destination URL.
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {config.qr_cards.map(qr => (
+          <div key={qr.id} className="airport-card">
+            <div className="flex items-start gap-4">
+              <div className="bg-white rounded-md p-2 flex-shrink-0" style={{ width: 80, height: 80 }}>
+                <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qr.url)}&size=120x120`} alt="QR" style={{ width: '100%', height: '100%' }} />
+              </div>
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Field label="Card label" hint="Shown above the QR on screen">
+                  <input className="input" value={qr.label} onChange={e => update(qr.id, 'label', e.target.value)} />
+                </Field>
+                <Field label="Destination URL">
+                  <input className="input mono" value={qr.url} onChange={e => update(qr.id, 'url', e.target.value)} />
+                </Field>
+                <div className="md:col-span-2 flex items-center justify-between">
+                  <div className="font-mono text-tertiary" style={{ fontSize: 11 }}>id: {qr.id}</div>
+                  <div className="flex items-center gap-3">
+                    <button className="btn btn-ghost text-xs" onClick={() => remove(qr.id)} style={{ color: 'var(--tcp-red)' }}>× Remove</button>
+                    <span className="text-tertiary" style={{ fontSize: 11 }}>enabled</span>
+                    <div className={`toggle ${qr.enabled ? 'on' : ''}`} onClick={() => update(qr.id, 'enabled', !qr.enabled)}></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button className="btn btn-secondary w-full justify-center py-3" onClick={add} style={{ borderStyle: 'dashed' }}>
+        + Add new QR card
+      </button>
+    </>
+  );
+}
+
+// ============================================================
+// MEDIA TAB — background music, corporate video, camera
+// ============================================================
+function MediaTab({ config, setNested, setToast }) {
+  const [checking, setChecking] = useState(false);
+
+  const checkMusicLink = () => {
+    setChecking(true);
+    setNested('media', 'bgm_status', 'checking');
+    // Simulate a status check
+    setTimeout(() => {
+      const ok = config.media.bgm_url.startsWith('http');
+      setNested('media', 'bgm_status', ok ? 'online' : 'offline');
+      setNested('media', 'bgm_last_checked', new Date().toISOString());
+      setChecking(false);
+      setToast({ type: 'success', text: ok ? 'Stream is online and reachable.' : 'Stream URL is invalid.' });
+      setTimeout(() => setToast(null), 3000);
+    }, 1200);
+  };
+
+  const status = config.media.bgm_status;
+  const statusColor = status === 'online' ? 'var(--tcp-green)' : status === 'checking' ? 'var(--tcp-amber)' : 'var(--tcp-red)';
+  const statusLabel = status === 'online' ? 'Online' : status === 'checking' ? 'Checking…' : 'Offline';
+
+  return (
+    <>
+      <PageTitle title="Media & sound" subtitle="Background music, corporate video, and camera feed. Music status is checked on demand and every hour automatically." />
+
+      {/* Background music */}
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Background music</div>
+          <div className="flex items-center gap-2">
+            <span className="dot" style={{ background: statusColor }}></span>
+            <span className="text-sm font-medium" style={{ color: statusColor }}>{statusLabel}</span>
+          </div>
+        </div>
+        <div className="section-body space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Stream label" hint="Shown in dashboard for clarity">
+              <input className="input" value={config.media.bgm_label} onChange={e => setNested('media', 'bgm_label', e.target.value)} />
+            </Field>
+            <Field label="Default volume" hint="0–100. Can be overridden per-screen.">
+              <input className="input mono" type="number" min="0" max="100" value={config.media.bgm_volume} onChange={e => setNested('media', 'bgm_volume', parseInt(e.target.value) || 0)} />
+            </Field>
+          </div>
+
+          <Field label="Stream URL" hint="MP3 / AAC / Icecast / Shoutcast streams supported. Test the URL before pushing.">
+            <div className="flex gap-2">
+              <input className="input mono flex-1" value={config.media.bgm_url} onChange={e => setNested('media', 'bgm_url', e.target.value)} />
+              <button className="btn btn-secondary" onClick={checkMusicLink} disabled={checking}>
+                {checking ? '⟳ Checking…' : '↻ Test link'}
+              </button>
+            </div>
+          </Field>
+
+          <div className="flex items-center justify-between p-3 rounded-lg" style={{ background: 'var(--bg-input)' }}>
+            <div className="flex items-center gap-3">
+              <span className="dot" style={{ background: statusColor }}></span>
+              <div>
+                <div className="text-sm font-medium" style={{ color: statusColor }}>{statusLabel}</div>
+                <div className="text-tertiary" style={{ fontSize: 11 }}>
+                  Last checked: {config.media.bgm_last_checked ? new Date(config.media.bgm_last_checked).toLocaleString() : 'never'}
+                </div>
+              </div>
+            </div>
+            <div className="text-tertiary text-xs">Auto-checked every hour</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Corporate video / Camera switch */}
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Camera or corporate video</div>
+        </div>
+        <div className="section-body space-y-4">
+          <div className="flex gap-2">
+            <button
+              className={`flex-1 p-4 rounded-lg border transition-all text-left ${!config.media.use_corporate_video ? 'border-tcp-blue' : 'border-default opacity-60'}`}
+              style={{ background: !config.media.use_corporate_video ? 'rgba(0, 159, 227, 0.05)' : 'var(--bg-input)' }}
+              onClick={() => setNested('media', 'use_corporate_video', false)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold">Live webcam (Feratel)</span>
+                {!config.media.use_corporate_video && <span className="tag tag-blue">selected</span>}
+              </div>
+              <div className="text-xs text-tertiary">Live view of the area — beach, mountain, landmark.</div>
+            </button>
+            <button
+              className={`flex-1 p-4 rounded-lg border transition-all text-left ${config.media.use_corporate_video ? 'border-tcp-blue' : 'border-default opacity-60'}`}
+              style={{ background: config.media.use_corporate_video ? 'rgba(0, 159, 227, 0.05)' : 'var(--bg-input)' }}
+              onClick={() => setNested('media', 'use_corporate_video', true)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold">Corporate video</span>
+                {config.media.use_corporate_video && <span className="tag tag-blue">selected</span>}
+              </div>
+              <div className="text-xs text-tertiary">Your hotel's promotional video. Plays in the cam slot.</div>
+            </button>
+          </div>
+
+          {!config.media.use_corporate_video ? (
+            <Field label="Feratel camera ID" hint="The UUID from your Feratel webcam embed code">
+              <input className="input mono" value={config.media.feratel_cam_id} onChange={e => setNested('media', 'feratel_cam_id', e.target.value)} />
+            </Field>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Video label" hint="Internal reference, e.g. 'Spring 2026 promo'">
+                <input className="input" value={config.media.corporate_video_label} onChange={e => setNested('media', 'corporate_video_label', e.target.value)} placeholder="e.g. Hotel Welcome Tour 2026" />
+              </Field>
+              <Field label="Video URL (MP4)" hint="Will become file upload to Supabase Storage in v.2">
+                <input className="input mono" value={config.media.corporate_video_url} onChange={e => setNested('media', 'corporate_video_url', e.target.value)} placeholder="https://..." />
+              </Field>
+              <div className="md:col-span-2">
+                <label className="lbl">Preview</label>
+                <div className="rounded-lg border border-default flex items-center justify-center" style={{ background: 'var(--bg-input)', minHeight: 160 }}>
+                  {config.media.corporate_video_url
+                    ? <video src={config.media.corporate_video_url} controls style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 6 }} />
+                    : <span className="text-tertiary">No video URL set</span>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <Field label="Cam popup interval (minutes)" hint="How often the cam/video appears as an overlay during normal carousel">
+            <input className="input mono" type="number" value={config.media.cam_popup_interval_min} onChange={e => setNested('media', 'cam_popup_interval_min', parseInt(e.target.value) || 0)} />
+          </Field>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================
+// MESSAGES TAB — internal communication
+// ============================================================
+function MessagesTab({ config, setSection, role }) {
+  const [composing, setComposing] = useState(false);
+  const [draft, setDraft] = useState({ subject: '', body: '', category: 'general' });
+  const [openMessageId, setOpenMessageId] = useState(null);
+
+  // Mark a message as read
+  const markRead = (id) => {
+    setSection('messages', config.messages.map(m => m.id === id ? { ...m, read: true } : m));
+    setOpenMessageId(id);
+  };
+
+  const sendMessage = () => {
+    if (!draft.subject || !draft.body) return;
+    const newMsg = {
+      id: `m${Date.now()}`,
+      from: role,
+      from_name: role === 'super' ? 'TCP SuperAdmin' : 'You',
+      subject: draft.subject,
+      body: draft.body,
+      sent_at: new Date().toISOString(),
+      read: true,
+      category: draft.category,
+    };
+    setSection('messages', [newMsg, ...config.messages]);
+    setDraft({ subject: '', body: '', category: 'general' });
+    setComposing(false);
+  };
+
+  const messages = [...config.messages].sort((a, b) => new Date(b.sent_at) - new Date(a.sent_at));
+  const openMessage = messages.find(m => m.id === openMessageId);
+  const otherParty = role === 'super' ? 'Hotel Manager' : 'TCP SuperAdmin';
+
+  return (
+    <>
+      <PageTitle title="Messages" subtitle={`Internal communication between you and ${otherParty}. Use this for reporting issues, requesting changes, billing questions, or feature requests.`} />
+
+      <div className="flex gap-5" style={{ minHeight: 500 }}>
+        {/* Inbox list */}
+        <div className="section-card flex-shrink-0" style={{ width: 320 }}>
+          <div className="section-head">
+            <div className="section-title">Inbox</div>
+            <button className="btn btn-primary text-xs" onClick={() => { setComposing(true); setOpenMessageId(null); }}>+ New</button>
+          </div>
+          <div style={{ maxHeight: 600, overflowY: 'auto' }}>
+            {messages.map(msg => {
+              const isFromMe = msg.from === role;
+              const selected = openMessageId === msg.id;
+              return (
+                <div
+                  key={msg.id}
+                  className={`px-4 py-3 cursor-pointer border-b border-subtle transition-colors ${selected ? '' : 'hover:bg-panel-2'}`}
+                  style={{ background: selected ? 'rgba(0, 159, 227, 0.08)' : !msg.read ? 'rgba(255,255,255,0.02)' : undefined }}
+                  onClick={() => markRead(msg.id)}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {!msg.read && !isFromMe && <span className="dot" style={{ background: 'var(--tcp-blue)' }}></span>}
+                      <span className="text-xs font-semibold truncate">{msg.from_name}</span>
+                    </div>
+                    <span className="text-tertiary text-xs flex-shrink-0">{formatRelative(msg.sent_at)}</span>
+                  </div>
+                  <div className={`text-sm font-medium truncate ${!msg.read && !isFromMe ? '' : 'text-secondary'}`}>{msg.subject}</div>
+                  <div className="text-tertiary text-xs truncate mt-0.5">{msg.body.substring(0, 60)}…</div>
+                  <div className="mt-1.5">
+                    <CategoryTag category={msg.category} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Reading pane / Compose */}
+        <div className="section-card flex-1">
+          {composing ? (
+            <>
+              <div className="section-head">
+                <div className="section-title">New message to {otherParty}</div>
+                <button className="btn btn-ghost" onClick={() => setComposing(false)}>× Cancel</button>
+              </div>
+              <div className="section-body space-y-4">
+                <Field label="Category">
+                  <select className="select" value={draft.category} onChange={e => setDraft({ ...draft, category: e.target.value })}>
+                    <option value="general">🟢 General</option>
+                    <option value="feature">🟦 Feature request</option>
+                    <option value="bug">🔴 Bug / problem</option>
+                    <option value="billing">🟡 Billing</option>
+                    <option value="alert">⚠️ Urgent / hardware</option>
+                  </select>
+                </Field>
+                <Field label="Subject">
+                  <input className="input" value={draft.subject} onChange={e => setDraft({ ...draft, subject: e.target.value })} placeholder="Brief summary…" />
+                </Field>
+                <Field label="Message">
+                  <textarea className="textarea" rows="10" value={draft.body} onChange={e => setDraft({ ...draft, body: e.target.value })} placeholder="Describe the issue or request…" />
+                </Field>
+                <div className="flex justify-end gap-2">
+                  <button className="btn btn-secondary" onClick={() => setComposing(false)}>Cancel</button>
+                  <button className="btn btn-primary" onClick={sendMessage} disabled={!draft.subject || !draft.body}>Send message</button>
+                </div>
+              </div>
+            </>
+          ) : openMessage ? (
+            <>
+              <div className="section-head">
+                <div>
+                  <div className="section-title">{openMessage.subject}</div>
+                  <div className="text-tertiary text-xs mt-1">
+                    From <strong className="text-secondary">{openMessage.from_name}</strong> · {new Date(openMessage.sent_at).toLocaleString()}
+                  </div>
+                </div>
+                <CategoryTag category={openMessage.category} />
+              </div>
+              <div className="section-body">
+                <div className="text-sm leading-relaxed whitespace-pre-wrap text-secondary mb-6">{openMessage.body}</div>
+                <button className="btn btn-secondary" onClick={() => setComposing(true)}>↩ Reply</button>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center justify-center h-full text-tertiary text-sm">
+              Select a message to read, or click "+ New" to compose.
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CategoryTag({ category }) {
+  const map = {
+    general:  { tag: 'tag-active', label: 'General' },
+    feature:  { tag: 'tag-blue', label: 'Feature' },
+    bug:      { tag: 'tag-trial', label: 'Bug' },
+    billing:  { tag: 'tag-trial', label: 'Billing' },
+    alert:    { tag: 'tag-trial', label: 'Urgent' },
+  };
+  const c = map[category] || map.general;
+  return <span className={`tag ${c.tag}`}>{c.label}</span>;
+}
+
+function formatRelative(iso) {
+  const diff = (new Date() - new Date(iso)) / 1000;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+}
+
+// ============================================================
+// WELCOME SCREEN TAB
+// ============================================================
+function WelcomeTab({ config, setNested, role }) {
+  return (
+    <>
+      <PageTitle title="Welcome screen" subtitle="The branded splash that appears when a TV powers on. Lobby screens see it on system reboot. Room TVs see it every time the guest turns on the TV." />
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Welcome content</div>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Display duration (sec)" hint="How long the splash stays before fading to carousel">
+            <input className="input mono" type="number" value={config.welcome.timing_sec} onChange={e => setNested('welcome', 'timing_sec', parseInt(e.target.value))} />
+          </Field>
+          <div></div>
+          <Field label="Today's highlight offer" hint="Shown at the bottom of the welcome splash. Update daily for freshness.">
+            <textarea className="textarea" rows="3" value={config.welcome.highlight_offer} onChange={e => setNested('welcome', 'highlight_offer', e.target.value)} />
+          </Field>
+          <div>
+            <label className="lbl">Preview</label>
+            <div className="rounded-lg border border-default p-6 flex flex-col justify-center" style={{ background: 'linear-gradient(135deg, #14141a, #0a0a0d)', minHeight: 150 }}>
+              <div className="text-tertiary" style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2 }}>TODAY'S HIGHLIGHT</div>
+              <div className="text-sm mt-2 leading-relaxed" style={{ color: 'var(--tcp-gold)' }}>{config.welcome.highlight_offer}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section-card">
+        <div className="section-head">
+          <div className="section-title">Per-language greeting overrides</div>
+          <span className="tag tag-gray">v.2 will add Claude AI auto-translation</span>
+        </div>
+        <div className="section-body grid grid-cols-1 md:grid-cols-2 gap-4">
+          {config.languages.map(lang => (
+            <Field key={lang} label={`${lang.toUpperCase()} greeting (optional)`} hint="Leave blank for auto: Good morning / afternoon / evening">
+              <input className="input" placeholder={`Welcome — ${lang}`} />
+            </Field>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ============================================================
+// JSON PREVIEW PANEL
+// ============================================================
+function JsonPreviewPanel({ config }) {
+  return (
+    <div className="section-card flex-shrink-0" style={{ width: 380, position: 'sticky', top: 0, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 100px)' }}>
+      <div className="section-head">
+        <div className="section-title">Live config payload</div>
+        <span className="tag tag-active">syncing</span>
+      </div>
+      <div className="section-body" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: 14 }}>
+        <pre className="json-pre">{JSON.stringify(config, null, 2)}</pre>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SHARED COMPONENTS
+// ============================================================
+function PageTitle({ title, subtitle }) {
+  return (
+    <div className="pb-2">
+      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <p className="text-secondary mt-1 text-sm leading-relaxed max-w-3xl">{subtitle}</p>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <div>
+      <label className="lbl">{label}</label>
+      {children}
+      {hint && <div className="lbl-hint">{hint}</div>}
+    </div>
+  );
+}
+
+function Toast({ type, text }) {
+  return (
+    <div className="toast">
+      <div className="flex items-start gap-3">
+        <span style={{ fontSize: 20 }}>✓</span>
+        <div>
+          <div className="text-sm font-semibold" style={{ color: 'var(--tcp-green)' }}>Saved successfully</div>
+          <div className="text-secondary text-xs mt-1">{text}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// MOUNT
+// ============================================================
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>

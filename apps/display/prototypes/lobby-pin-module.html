@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TCP — Rotating PIN Module</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --tcp-blue: #009FE3;
+    --tcp-gold: #c5a059;
+    --tcp-green: #2ecc71;
+    --tcp-red: #ef4444;
+    --tcp-amber: #f59e0b;
+    --bg-base: #0a0a0d;
+    --bg-panel: #14141a;
+    --bg-panel-2: #1c1c24;
+    --bg-input: #0f0f14;
+    --border-subtle: rgba(255,255,255,0.06);
+    --border-default: rgba(255,255,255,0.1);
+    --border-strong: rgba(255,255,255,0.18);
+    --text-primary: #f5f5f7;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+  }
+  body {
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: var(--bg-base);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* --- Mode switcher in header --- */
+  .mode-tab {
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    border: 1px solid var(--border-default);
+    background: var(--bg-panel);
+    color: var(--text-secondary);
+  }
+  .mode-tab:hover { color: var(--text-primary); }
+  .mode-tab.active {
+    background: var(--tcp-blue);
+    color: white;
+    border-color: var(--tcp-blue);
+  }
+
+  /* --- TV PIN Widget Styles (the real product) --- */
+  .tv-frame {
+    background: linear-gradient(135deg, #050508 0%, #0a0a14 100%);
+    border-radius: 16px;
+    border: 1px solid var(--border-default);
+    aspect-ratio: 16 / 9;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+  .tv-pin-overlay {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    background: rgba(15, 15, 20, 0.92);
+    backdrop-filter: blur(20px);
+    border: 1.5px solid rgba(0, 159, 227, 0.4);
+    border-radius: 14px;
+    padding: 16px 20px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(0, 159, 227, 0.15);
+    min-width: 280px;
+  }
+  .tv-pin-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--tcp-blue);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .tv-pin-digits {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .tv-pin-digit {
+    width: 50px;
+    height: 64px;
+    background: rgba(0, 159, 227, 0.08);
+    border: 1.5px solid rgba(0, 159, 227, 0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-shadow: 0 0 20px rgba(0, 159, 227, 0.4);
+  }
+  .tv-pin-foot {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .tv-pin-progress {
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .tv-pin-progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--tcp-blue), var(--tcp-gold));
+    transition: width 1s linear;
+  }
+  .tv-pin-overlay.expiring {
+    border-color: rgba(245, 158, 11, 0.5);
+    animation: pulse-warn 1.5s ease-in-out infinite;
+  }
+  .tv-pin-overlay.expiring .tv-pin-label { color: var(--tcp-amber); }
+  .tv-pin-overlay.expiring .tv-pin-digit {
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  @keyframes pulse-warn {
+    0%, 100% { box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 30px rgba(245, 158, 11, 0.15); }
+    50% { box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(245, 158, 11, 0.4); }
+  }
+
+  /* --- Mock TV background content --- */
+  .tv-mock-content {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 2.6fr 1fr;
+    gap: 16px;
+    padding: 16px;
+  }
+  .tv-mock-card {
+    background: rgba(20, 20, 28, 0.7);
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    border-left: 8px solid var(--tcp-blue);
+    padding: 18px;
+  }
+  .tv-mock-side {
+    background: rgba(20, 20, 28, 0.7);
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .tv-mock-logo {
+    color: var(--tcp-gold);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .tv-mock-clock {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text-primary);
+  }
+  .tv-mock-game {
+    flex: 1;
+    background: radial-gradient(circle at 60%, rgba(197, 160, 89, 0.1) 0%, transparent 60%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 12px;
+    color: var(--text-tertiary);
+    font-size: 12px;
+  }
+  .tv-mock-weather {
+    text-align: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .tv-mock-weather-temp {
+    font-size: 32px;
+    font-weight: 600;
+  }
+
+  /* --- Phone Verification Page Styles --- */
+  .phone-frame {
+    width: 360px;
+    height: 720px;
+    background: var(--bg-panel);
+    border-radius: 36px;
+    border: 8px solid #1a1a22;
+    margin: 0 auto;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.4);
+  }
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0a0a14 0%, #14141f 100%);
+    overflow-y: auto;
+    position: relative;
+    padding: 50px 24px 24px;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 28px;
+    background: #1a1a22;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+  .phone-pin-input {
+    width: 64px;
+    height: 80px;
+    background: var(--bg-input);
+    border: 2px solid var(--border-default);
+    border-radius: 14px;
+    text-align: center;
+    font-size: 36px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    transition: all .2s;
+  }
+  .phone-pin-input:focus {
+    outline: none;
+    border-color: var(--tcp-blue);
+    background: rgba(0, 159, 227, 0.08);
+    box-shadow: 0 0 0 4px rgba(0, 159, 227, 0.15);
+  }
+  .phone-pin-input.filled {
+    border-color: var(--tcp-blue);
+    color: var(--tcp-blue);
+  }
+  .phone-pin-input.error {
+    border-color: var(--tcp-red);
+    color: var(--tcp-red);
+    animation: shake 0.4s;
+  }
+  .phone-pin-input.success {
+    border-color: var(--tcp-green);
+    color: var(--tcp-green);
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* --- Generic UI --- */
+  .input, .select {
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: 7px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: var(--text-primary);
+    width: 100%;
+  }
+  .input:focus, .select:focus {
+    outline: none;
+    border-color: var(--tcp-blue);
+    box-shadow: 0 0 0 3px rgba(0, 159, 227, 0.15);
+  }
+  .btn {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--tcp-blue);
+    color: white;
+  }
+  .btn-primary:hover { background: #0077AD; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary {
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+  .section {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .section-sub {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-bottom: 18px;
+  }
+  .lbl {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 5px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+// =============================================================
+// CORE PIN ENGINE — shared by TV display + admin preview
+// =============================================================
+function usePinRotation(rotationMinutes = 5) {
+  const [pin, setPin] = useState(generatePin());
+  const [secondsRemaining, setSecondsRemaining] = useState(rotationMinutes * 60);
+  const [issuedAt, setIssuedAt] = useState(new Date());
+
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setSecondsRemaining(prev => {
+        if (prev <= 1) {
+          // Rotate
+          setPin(generatePin());
+          setIssuedAt(new Date());
+          return rotationMinutes * 60;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, [rotationMinutes]);
+
+  return { pin, secondsRemaining, issuedAt, totalSeconds: rotationMinutes * 60 };
+}
+
+function generatePin() {
+  // 4-digit PIN, exclude visually confusing patterns (0000, 1111, etc)
+  let pin;
+  do {
+    pin = Math.floor(1000 + Math.random() * 9000).toString();
+  } while (/^(\d)\1{3}$/.test(pin) || pin === '1234' || pin === '0000');
+  return pin;
+}
+
+function formatTimer(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// =============================================================
+// MAIN APP
+// =============================================================
+function App() {
+  const [mode, setMode] = useState('overview'); // overview | tv | phone | admin
+  const pinState = usePinRotation(5);
+
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="border-b border-subtle bg-panel" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-panel)' }}>
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg flex items-center justify-center font-bold text-white" style={{ background: 'linear-gradient(135deg, #009FE3, #c5a059)', fontSize: 18 }}>P</div>
+            <div>
+              <div className="text-sm font-semibold leading-none">Rotating PIN Module</div>
+              <div className="leading-none mt-1" style={{ fontSize: 10, letterSpacing: 1.5, color: 'var(--text-tertiary)' }}>FRICTIONLESS FALLBACK · v.1</div>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <button className={`mode-tab ${mode === 'overview' ? 'active' : ''}`} onClick={() => setMode('overview')}>Overview</button>
+            <button className={`mode-tab ${mode === 'tv' ? 'active' : ''}`} onClick={() => setMode('tv')}>TV Display</button>
+            <button className={`mode-tab ${mode === 'phone' ? 'active' : ''}`} onClick={() => setMode('phone')}>Guest Phone</button>
+            <button className={`mode-tab ${mode === 'admin' ? 'active' : ''}`} onClick={() => setMode('admin')}>Admin Preview</button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-8">
+        {mode === 'overview' && <OverviewMode />}
+        {mode === 'tv' && <TvMode pinState={pinState} />}
+        {mode === 'phone' && <PhoneMode pinState={pinState} />}
+        {mode === 'admin' && <AdminMode pinState={pinState} />}
+      </main>
+    </div>
+  );
+}
+
+// =============================================================
+// OVERVIEW — explains the architecture
+// =============================================================
+function OverviewMode() {
+  return (
+    <>
+      <div className="section">
+        <div className="section-title">What this module does</div>
+        <div className="section-sub">The frictionless fallback for Tier-2 verification when GPS fails.</div>
+        <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+          When a guest scans a verified QR (late checkout, free drink, spa upgrade), the system tries Geolocation first. If the browser denies location permission, or accuracy is too poor (basement bar, elevator, hotel garage), the PIN module activates: a 4-digit code is shown live on the lobby/room TV, and the guest types it into their phone. PIN rotates every 5 minutes by default — short enough that someone outside the property can't reliably guess or reuse it, long enough that a real guest has time to read and enter it.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="section">
+          <div className="text-xs font-semibold mb-2" style={{ color: 'var(--tcp-blue)', letterSpacing: 0.5 }}>1 · TV DISPLAY</div>
+          <div className="text-sm font-semibold mb-2">Always shows the current PIN</div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Lobby and room TVs subscribe to a Realtime channel. The current PIN is broadcast from a Supabase Edge Function on a schedule. PIN appears as an unobtrusive overlay in the corner — visible if you look, invisible to passers-by.
+          </p>
+        </div>
+        <div className="section">
+          <div className="text-xs font-semibold mb-2" style={{ color: 'var(--tcp-amber)', letterSpacing: 0.5 }}>2 · PHONE PROMPT</div>
+          <div className="text-sm font-semibold mb-2">Appears only on GPS failure</div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Guest scans verified QR → tries geolocation → denied/inaccurate → "Type the 4-digit code shown on the lobby TV" prompt. 4 boxes, autofocus, big numbers. Submit triggers verify-pin Edge Function.
+          </p>
+        </div>
+        <div className="section">
+          <div className="text-xs font-semibold mb-2" style={{ color: 'var(--tcp-green)', letterSpacing: 0.5 }}>3 · SERVER VERIFY</div>
+          <div className="text-sm font-semibold mb-2">Match against active PIN</div>
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            verify-pin RPC checks the submitted PIN against the property's current_pin in DB (with 1 grace period overlap so an in-flight rotation doesn't reject a legitimate guest). Match → verified, reward unlocked. No match → error, retry allowed.
+          </p>
+        </div>
+      </div>
+
+      <div className="section" style={{ borderColor: 'rgba(0, 159, 227, 0.3)', background: 'rgba(0, 159, 227, 0.04)' }}>
+        <div className="text-sm font-semibold mb-3" style={{ color: 'var(--tcp-blue)' }}>Try it — switch tabs above</div>
+        <div className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+          The PIN is live and rotates every 5 minutes (a single shared instance across all tabs). Switch between TV Display, Guest Phone, and Admin Preview to see all three perspectives showing the same PIN simultaneously — that's the Realtime synchronization you'll get in production via Supabase Channels.
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =============================================================
+// TV MODE — what the lobby/room TV shows
+// =============================================================
+function TvMode({ pinState }) {
+  const { pin, secondsRemaining, totalSeconds } = pinState;
+  const expiring = secondsRemaining <= 30;
+  const progressPct = (secondsRemaining / totalSeconds) * 100;
+
+  return (
+    <>
+      <div className="section">
+        <div className="section-title">TV Display — PIN overlay</div>
+        <div className="section-sub">How the PIN appears on the lobby (and room) TV. Bottom-right corner — visible to a guest who is looking for it, invisible during normal viewing.</div>
+
+        <div className="tv-frame">
+          {/* Mock TV content */}
+          <div className="tv-mock-content">
+            <div className="tv-mock-card">
+              <div className="flex justify-between items-start mb-4">
+                <div className="tv-mock-logo">RADISSON BLU</div>
+                <div className="tv-mock-clock">{new Date().toLocaleTimeString('en-US', { hour12: false })}</div>
+              </div>
+              <div className="tv-mock-game">
+                ⚽ Game in progress · Spin the wheel
+              </div>
+            </div>
+            <div className="tv-mock-side">
+              <div className="tv-mock-weather">
+                <div className="tv-mock-weather-temp">14°</div>
+                <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Batumi · Partly cloudy</div>
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: 1 }}>QR Cards</div>
+              <div className="bg-white rounded p-1 flex-1" style={{ minHeight: 80 }}>
+                <div style={{ background: 'repeating-linear-gradient(45deg, #000 0 4px, #fff 4px 8px)', height: '100%', borderRadius: 3 }}></div>
+              </div>
+            </div>
+          </div>
+
+          {/* PIN overlay */}
+          <div className={`tv-pin-overlay ${expiring ? 'expiring' : ''}`}>
+            <div className="tv-pin-label">🛡 ON-PROPERTY VERIFICATION</div>
+            <div className="tv-pin-digits">
+              {pin.split('').map((d, i) => (
+                <div key={i} className="tv-pin-digit">{d}</div>
+              ))}
+            </div>
+            <div className="tv-pin-foot">
+              <span>For prize verification only</span>
+              <span className="font-mono" style={{ color: expiring ? 'var(--tcp-amber)' : 'var(--text-tertiary)' }}>
+                {expiring ? '⚠ ' : ''}{formatTimer(secondsRemaining)}
+              </span>
+            </div>
+            <div className="tv-pin-progress">
+              <div className="tv-pin-progress-fill" style={{ width: `${progressPct}%` }}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-title">Implementation details</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+          <div>
+            <div className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>BEHAVIOR</div>
+            <ul className="text-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
+              <li>• Fixed bottom-right placement, ~280px wide</li>
+              <li>• Subtle glow border to be discoverable but not invasive</li>
+              <li>• Last 30s shows amber warning + pulse animation</li>
+              <li>• Progress bar matches countdown for visual feedback</li>
+              <li>• PIN rotates without animation — the new digits just appear</li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-xs font-semibold mb-2" style={{ color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>DATA FLOW</div>
+            <ul className="text-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
+              <li>• Supabase Edge Function generates PIN every 5 min</li>
+              <li>• Writes to <code className="font-mono text-xs" style={{ color: 'var(--tcp-blue)' }}>property_pins</code> table</li>
+              <li>• Realtime broadcasts new PIN to all property screens</li>
+              <li>• Display reacts to broadcast — no polling needed</li>
+              <li>• Includes <code className="font-mono text-xs" style={{ color: 'var(--tcp-blue)' }}>expires_at</code> so countdown is server-driven</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =============================================================
+// PHONE MODE — guest verification flow
+// =============================================================
+function PhoneMode({ pinState }) {
+  const [step, setStep] = useState('arriving'); // arriving | gps_attempt | gps_failed | pin_entry | success
+  const [pinInput, setPinInput] = useState(['', '', '', '']);
+  const [error, setError] = useState(false);
+  const inputRefs = [useRef(), useRef(), useRef(), useRef()];
+
+  // Auto-advance through scenario
+  useEffect(() => {
+    if (step === 'arriving') {
+      const t = setTimeout(() => setStep('gps_attempt'), 1500);
+      return () => clearTimeout(t);
+    }
+    if (step === 'gps_attempt') {
+      const t = setTimeout(() => setStep('gps_failed'), 2200);
+      return () => clearTimeout(t);
+    }
+    if (step === 'gps_failed') {
+      const t = setTimeout(() => {
+        setStep('pin_entry');
+        setTimeout(() => inputRefs[0].current?.focus(), 100);
+      }, 1800);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const handleDigit = (idx, value) => {
+    if (!/^\d?$/.test(value)) return;
+    const next = [...pinInput];
+    next[idx] = value;
+    setPinInput(next);
+    setError(false);
+
+    if (value && idx < 3) {
+      inputRefs[idx + 1].current?.focus();
+    }
+
+    // Auto-submit on full entry
+    if (next.every(d => d) && next.join('').length === 4) {
+      setTimeout(() => verify(next.join('')), 200);
+    }
+  };
+
+  const handleKeyDown = (idx, e) => {
+    if (e.key === 'Backspace' && !pinInput[idx] && idx > 0) {
+      inputRefs[idx - 1].current?.focus();
+    }
+  };
+
+  const verify = (entered) => {
+    if (entered === pinState.pin) {
+      setStep('success');
+    } else {
+      setError(true);
+      setTimeout(() => {
+        setError(false);
+        setPinInput(['', '', '', '']);
+        inputRefs[0].current?.focus();
+      }, 800);
+    }
+  };
+
+  const reset = () => {
+    setStep('arriving');
+    setPinInput(['', '', '', '']);
+    setError(false);
+  };
+
+  return (
+    <>
+      <div className="section">
+        <div className="section-title">Guest phone — verification flow</div>
+        <div className="section-sub">The complete path: scan QR → GPS denied → PIN fallback → success. Uses the live PIN from the TV tab.</div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* Phone */}
+        <div className="phone-frame">
+          <div className="phone-notch"></div>
+          <div className="phone-screen">
+            {step === 'arriving' && (
+              <div className="text-center pt-32">
+                <div style={{ fontSize: 48 }}>📱</div>
+                <div className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>QR scanned…</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>Connecting…</div>
+              </div>
+            )}
+
+            {step === 'gps_attempt' && (
+              <div>
+                <div className="rounded-xl p-4 mb-4" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+                  <div className="flex items-start gap-3">
+                    <span style={{ fontSize: 20 }}>📍</span>
+                    <div>
+                      <div className="text-sm font-semibold mb-1">Allow location access?</div>
+                      <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>tcp.pro wants to verify you're on the property.</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button className="btn flex-1" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)' }}>Don't allow</button>
+                    <button className="btn flex-1 btn-primary">Allow once</button>
+                  </div>
+                </div>
+                <div className="text-center text-xs mt-6" style={{ color: 'var(--text-tertiary)' }}>
+                  Awaiting permission…
+                </div>
+              </div>
+            )}
+
+            {step === 'gps_failed' && (
+              <div className="text-center pt-24">
+                <div style={{ fontSize: 36 }}>⚠️</div>
+                <div className="text-sm mt-3" style={{ color: 'var(--text-secondary)' }}>Location unavailable</div>
+                <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>You may be indoors or location is denied</div>
+                <div className="text-xs mt-6" style={{ color: 'var(--tcp-blue)' }}>Switching to PIN fallback…</div>
+              </div>
+            )}
+
+            {step === 'pin_entry' && (
+              <>
+                <div className="text-center mb-6">
+                  <div style={{ fontSize: 28 }}>🛡</div>
+                  <h2 className="text-lg font-bold mt-2">Verify your presence</h2>
+                  <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--text-tertiary)' }}>
+                    Enter the 4-digit code shown on the lobby TV
+                  </p>
+                </div>
+
+                <div className="flex gap-2 justify-center mb-6">
+                  {pinInput.map((digit, i) => (
+                    <input
+                      key={i}
+                      ref={inputRefs[i]}
+                      type="tel"
+                      maxLength="1"
+                      className={`phone-pin-input ${digit ? 'filled' : ''} ${error ? 'error' : ''}`}
+                      value={digit}
+                      onChange={e => handleDigit(i, e.target.value)}
+                      onKeyDown={e => handleKeyDown(i, e)}
+                    />
+                  ))}
+                </div>
+
+                {error && (
+                  <div className="text-center text-xs mb-3" style={{ color: 'var(--tcp-red)' }}>
+                    ✗ PIN doesn't match. Try again.
+                  </div>
+                )}
+
+                <div className="text-center text-xs mb-6" style={{ color: 'var(--text-tertiary)' }}>
+                  Look at the bottom-right of the TV →
+                </div>
+
+                <button className="btn w-full" style={{ background: 'transparent', color: 'var(--text-tertiary)', fontSize: 12 }}>
+                  Need help? Contact front desk
+                </button>
+              </>
+            )}
+
+            {step === 'success' && (
+              <div className="text-center pt-20">
+                <div style={{
+                  fontSize: 48,
+                  display: 'inline-flex',
+                  width: 88, height: 88,
+                  alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '50%',
+                  background: 'rgba(46, 204, 113, 0.15)',
+                  border: '2px solid var(--tcp-green)'
+                }}>✓</div>
+                <h2 className="text-xl font-bold mt-5" style={{ color: 'var(--tcp-green)' }}>Verified</h2>
+                <div className="text-sm mt-3" style={{ color: 'var(--text-secondary)' }}>Your reward is ready</div>
+
+                <div className="rounded-xl p-4 mt-6" style={{ background: 'rgba(46, 204, 113, 0.06)', border: '1px solid rgba(46, 204, 113, 0.25)' }}>
+                  <div className="text-xs font-semibold mb-1" style={{ color: 'var(--tcp-green)', letterSpacing: 0.5 }}>FREE WELCOME COCKTAIL</div>
+                  <div className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    Show this code at the Sky Bar:
+                  </div>
+                  <div className="font-mono text-2xl font-bold mt-3" style={{ color: 'var(--tcp-gold)', letterSpacing: 4 }}>
+                    R-WLC-9384
+                  </div>
+                  <div className="text-xs mt-3" style={{ color: 'var(--text-tertiary)' }}>
+                    Expires in 24h
+                  </div>
+                </div>
+
+                <button className="btn btn-primary w-full mt-6" onClick={reset}>
+                  Replay flow
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Side narration */}
+        <div className="flex-1">
+          <div className="section">
+            <div className="text-xs font-semibold mb-3" style={{ color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>WHAT JUST HAPPENED</div>
+            <div className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <FlowStep done={['gps_attempt', 'gps_failed', 'pin_entry', 'success'].includes(step)} num="1" text="Guest scanned a verified QR (e.g. Welcome Cocktail). URL contains JWT identifying property + qr_id."/>
+              <FlowStep done={['gps_failed', 'pin_entry', 'success'].includes(step)} num="2" text="Browser asks for location permission."/>
+              <FlowStep done={['pin_entry', 'success'].includes(step)} num="3" text="Guest denied or GPS unavailable (basement, bad signal). System falls through to PIN fallback."/>
+              <FlowStep done={step === 'success'} num="4" text={<>Guest reads PIN <strong className="font-mono" style={{ color: 'var(--tcp-blue)' }}>{pinState.pin}</strong> from TV, types into 4 boxes. Auto-submit on completion.</>}/>
+              <FlowStep done={step === 'success'} num="5" text="Server verifies PIN against current property PIN. Match → reward unlocked + unique redemption code generated."/>
+            </div>
+          </div>
+
+          <div className="section">
+            <div className="text-xs font-semibold mb-3" style={{ color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>UX DETAILS</div>
+            <ul className="text-sm space-y-2" style={{ color: 'var(--text-secondary)' }}>
+              <li>• Auto-focus next box on digit entry</li>
+              <li>• Backspace jumps to previous box</li>
+              <li>• Auto-submit when all 4 digits entered (no submit button needed)</li>
+              <li>• Wrong PIN: shake animation + clear inputs, no friction</li>
+              <li>• Numeric keyboard via <code className="font-mono text-xs" style={{ color: 'var(--tcp-blue)' }}>type="tel"</code></li>
+            </ul>
+          </div>
+
+          <div className="section">
+            <button className="btn btn-secondary w-full" onClick={reset}>↻ Restart flow</button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function FlowStep({ done, num, text }) {
+  return (
+    <div className="flex gap-3 items-start">
+      <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-mono text-xs font-bold" style={{
+        background: done ? 'rgba(46, 204, 113, 0.15)' : 'rgba(255,255,255,0.04)',
+        color: done ? 'var(--tcp-green)' : 'var(--text-tertiary)',
+        border: `1px solid ${done ? 'rgba(46, 204, 113, 0.3)' : 'var(--border-default)'}`
+      }}>{done ? '✓' : num}</div>
+      <div className="text-sm leading-relaxed">{text}</div>
+    </div>
+  );
+}
+
+// =============================================================
+// ADMIN PREVIEW — for the SuperAdmin/manager dashboard
+// =============================================================
+function AdminMode({ pinState }) {
+  const { pin, secondsRemaining, totalSeconds, issuedAt } = pinState;
+  const [rotationMin, setRotationMin] = useState(5);
+  const expiring = secondsRemaining <= 30;
+  const progressPct = (secondsRemaining / totalSeconds) * 100;
+
+  return (
+    <>
+      <div className="section">
+        <div className="section-title">Admin preview — PIN status panel</div>
+        <div className="section-sub">This widget would live in the admin dashboard's QR cards tab, replacing the static "Current PIN: 4729" we mocked in v.1.2.</div>
+
+        <div className="rounded-xl p-5" style={{ background: 'var(--bg-input)', border: '1px solid var(--border-default)' }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-sm font-semibold flex items-center gap-2">
+              <span className="dot" style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: 'var(--tcp-green)',
+                boxShadow: '0 0 6px rgba(46, 204, 113, 0.5)',
+                display: 'inline-block'
+              }}></span>
+              Current lobby PIN — live
+            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600,
+              padding: '3px 8px',
+              borderRadius: 4,
+              background: 'rgba(46, 204, 113, 0.1)',
+              color: 'var(--tcp-green)',
+              border: '1px solid rgba(46, 204, 113, 0.25)',
+              letterSpacing: 0.5
+            }}>SYNCED TO ALL SCREENS</span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div>
+              <div className="lbl">Active code</div>
+              <div className="font-mono font-bold mt-2" style={{
+                fontSize: 36,
+                color: expiring ? 'var(--tcp-amber)' : 'var(--tcp-blue)',
+                letterSpacing: 4,
+                lineHeight: 1
+              }}>{pin}</div>
+            </div>
+            <div>
+              <div className="lbl">Time remaining</div>
+              <div className="font-mono mt-2" style={{
+                fontSize: 28,
+                color: expiring ? 'var(--tcp-amber)' : 'var(--text-primary)',
+                lineHeight: 1
+              }}>{formatTimer(secondsRemaining)}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                {expiring ? '⚠ rotating soon' : 'until next rotation'}
+              </div>
+            </div>
+            <div>
+              <div className="lbl">Issued</div>
+              <div className="text-sm mt-2 font-mono">{issuedAt.toLocaleTimeString()}</div>
+              <div className="text-xs mt-1" style={{ color: 'var(--text-tertiary)' }}>
+                from Edge Function
+              </div>
+            </div>
+          </div>
+
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${progressPct}%`,
+              background: expiring ? 'var(--tcp-amber)' : 'linear-gradient(to right, var(--tcp-blue), var(--tcp-gold))',
+              transition: 'width 1s linear, background 0.3s'
+            }}></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-title">Settings</div>
+        <div className="section-sub">SuperAdmin can configure rotation interval per property. Hotel manager sees these as read-only.</div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="lbl">Rotation interval (minutes)</label>
+            <select className="select" value={rotationMin} onChange={e => setRotationMin(parseInt(e.target.value))}>
+              <option value="2">2 minutes — high-fraud-risk properties</option>
+              <option value="5">5 minutes — recommended default</option>
+              <option value="10">10 minutes — relaxed properties</option>
+              <option value="15">15 minutes — small properties, low traffic</option>
+            </select>
+            <div className="text-xs mt-2" style={{ color: 'var(--text-tertiary)' }}>
+              Shorter = harder to reuse, but more rotations to track. Longer = forgiving for guests, easier for cheating.
+            </div>
+          </div>
+          <div>
+            <label className="lbl">Grace overlap window</label>
+            <div className="text-sm" style={{ color: 'var(--text-primary)', padding: '9px 0' }}>
+              <span className="font-mono">15 seconds</span>
+            </div>
+            <div className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
+              The previous PIN remains valid for 15 seconds after rotation, so a guest mid-typing isn't rejected by an unlucky timing.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="section">
+        <div className="section-title">Verification attempts log</div>
+        <div className="section-sub">Last 5 attempts at this property — useful for debugging support tickets.</div>
+
+        <table className="w-full text-sm">
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+              <th className="text-left pb-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>TIME</th>
+              <th className="text-left pb-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>METHOD</th>
+              <th className="text-left pb-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>QR TYPE</th>
+              <th className="text-left pb-2" style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: 0.5 }}>RESULT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <LogRow time="11:42:18" method="GPS" details="42m from hotel" qr="Free Drink" result="success" />
+            <LogRow time="11:39:02" method="PIN" details="Code 4729 ✓" qr="Late Checkout" result="success" />
+            <LogRow time="11:35:11" method="PIN" details="Code 8841 ✗" qr="Spa Upgrade" result="failed" />
+            <LogRow time="11:34:55" method="PIN" details="Code 4729 ✓" qr="Spa Upgrade" result="success" />
+            <LogRow time="11:30:44" method="GPS" details="180m from hotel" qr="Free Drink" result="success" />
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function LogRow({ time, method, details, qr, result }) {
+  return (
+    <tr style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      <td className="py-2 font-mono" style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{time}</td>
+      <td className="py-2">
+        <span style={{
+          fontSize: 10, fontWeight: 600,
+          padding: '2px 7px',
+          borderRadius: 4,
+          background: method === 'GPS' ? 'rgba(46, 204, 113, 0.1)' : 'rgba(0, 159, 227, 0.1)',
+          color: method === 'GPS' ? 'var(--tcp-green)' : 'var(--tcp-blue)',
+          border: `1px solid ${method === 'GPS' ? 'rgba(46, 204, 113, 0.25)' : 'rgba(0, 159, 227, 0.25)'}`,
+        }}>{method}</span>
+        <span className="ml-2 font-mono" style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{details}</span>
+      </td>
+      <td className="py-2 text-sm">{qr}</td>
+      <td className="py-2">
+        {result === 'success'
+          ? <span className="text-sm" style={{ color: 'var(--tcp-green)' }}>✓ verified</span>
+          : <span className="text-sm" style={{ color: 'var(--tcp-red)' }}>✗ rejected</span>}
+      </td>
+    </tr>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>

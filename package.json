@@ -1,0 +1,34 @@
+{
+  "name": "travel-connect-pro",
+  "version": "0.1.0",
+  "private": true,
+  "description": "White-label hotel digital signage SaaS — TCP",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:admin": "npm -w apps/admin run dev",
+    "dev:display": "npm -w apps/display run dev",
+    "dev:pwa": "npm -w apps/pwa run dev",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "db:test": "supabase test db",
+    "db:diff": "supabase db diff",
+    "types:gen": "supabase gen types typescript --project-id pjyjblllcllnqsjbvbfc --schema public > packages/types/src/database.ts",
+    "functions:serve": "supabase functions serve",
+    "functions:deploy": "supabase functions deploy",
+    "lint": "eslint . --ext .ts,.tsx",
+    "check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "supabase": "^1.200.0",
+    "typescript": "^5.5.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
+}
