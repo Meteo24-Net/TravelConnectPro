@@ -90,7 +90,7 @@ COMMENT ON COLUMN hotels.integration_mode IS
 -- ============================================================================
 
 CREATE TABLE welcome_template_library (
-  id              UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   language_code   TEXT         NOT NULL,                  -- 'en', 'ka', 'ru', 'tr'
   time_of_day     TEXT         NOT NULL                   -- matches the boundaries we agreed on
                                  CHECK (time_of_day IN ('morning', 'afternoon', 'evening', 'night')),
