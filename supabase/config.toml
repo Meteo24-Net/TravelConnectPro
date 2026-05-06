@@ -3,7 +3,7 @@
 # Dashboard: https://supabase.com/dashboard/project/pjyjblllcllnqsjbvbfc
 
 [project]
-project_id = "pjyjblllcllnqsjbvbfc"
+--project-ref = "pjyjblllcllnqsjbvbfc"
 
 # ─── API ────────────────────────────────────────────────────────────────────
 [api]
@@ -72,8 +72,8 @@ enable_confirmations = false          # toggle ON in production
 enable_signup = false
 
 # ─── EDGE FUNCTIONS ─────────────────────────────────────────────────────────
-[functions]
-verify_jwt = true
+[functions.service-request]
+verify_jwt = true 
 
 # ─── ANALYTICS ──────────────────────────────────────────────────────────────
 [analytics]
