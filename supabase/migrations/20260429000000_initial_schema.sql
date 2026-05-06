@@ -29,7 +29,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- Hotels · the top-level tenant. Every other hotel-scoped row references this.
 CREATE TABLE hotels (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   brand_name            TEXT         NOT NULL,
   short_code            TEXT         UNIQUE NOT NULL,                       -- 'rad-bat-001' for URL-safe references
   status                TEXT         NOT NULL DEFAULT 'trial'                -- 'trial' | 'active' | 'suspended'
@@ -110,7 +110,7 @@ COMMENT ON FUNCTION current_user_hotel_id() IS 'Returns the hotel_id for the cal
 -- ============================================================================
 
 CREATE TABLE screens (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   screen_type           TEXT         NOT NULL                                -- 'lobby_landscape' | 'lobby_portrait' | 'room_tv' | 'small_display'
                                        CHECK (screen_type IN ('lobby_landscape', 'lobby_portrait', 'room_tv', 'small_display')),
@@ -142,7 +142,7 @@ COMMENT ON TABLE screens IS 'Every TV/display registered to a hotel. Heartbeat t
 -- ============================================================================
 
 CREATE TABLE property_airports (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   iata_code             TEXT         NOT NULL,                               -- 'BUS', 'TBS'
   airport_name          TEXT         NOT NULL,
@@ -196,7 +196,7 @@ CREATE TABLE currency_cache (
 );
 
 CREATE TABLE ai_content (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         REFERENCES hotels(id) ON DELETE CASCADE, -- nullable: null = SuperAdmin global
   content_type          TEXT         NOT NULL                                -- 'ticker' | 'welcome' | 'insight'
                                        CHECK (content_type IN ('ticker', 'welcome', 'insight')),
@@ -241,7 +241,7 @@ COMMENT ON TABLE property_configs IS 'Master JSONB config per hotel. Admin write
 -- ============================================================================
 
 CREATE TABLE qr_assets (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   qr_id                 TEXT         NOT NULL,                               -- 'wifi', 'menu', 'spa-upgrade'
 
@@ -305,7 +305,7 @@ COMMENT ON TABLE lobby_pins IS 'Rotating 4-digit PIN for proximity verification 
 -- ============================================================================
 
 CREATE TABLE guest_sessions (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   room_id               UUID         REFERENCES screens(id) ON DELETE SET NULL,
   device_hash           TEXT         NOT NULL,
@@ -338,7 +338,7 @@ COMMENT ON TABLE guest_sessions IS 'Anonymous session per device per hotel. No P
 
 -- Scans log · every QR scan, one row. Source of all analytics.
 CREATE TABLE scans (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   session_id            UUID         REFERENCES guest_sessions(id) ON DELETE SET NULL,
   qr_asset_id           UUID         REFERENCES qr_assets(id) ON DELETE SET NULL,
@@ -351,7 +351,7 @@ CREATE TABLE scans (
 
 -- Verification attempts · log every Tier-2 attempt for fraud analytics
 CREATE TABLE verification_attempts (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   qr_asset_id           UUID         REFERENCES qr_assets(id) ON DELETE SET NULL,
   device_hash           TEXT,
@@ -378,7 +378,7 @@ COMMENT ON TABLE verification_attempts IS 'Audit log for every Tier-2 verificati
 -- ============================================================================
 
 CREATE TABLE service_channels (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   channel_id            TEXT         NOT NULL,                               -- 'housekeeping', 'front_desk', 'spa'
   name                  TEXT         NOT NULL,                               -- 'Housekeeping'
@@ -393,7 +393,7 @@ CREATE TABLE service_channels (
 
 
 CREATE TABLE service_catalog (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   service_id            TEXT         NOT NULL,                               -- 'clean-room', 'late-checkout'
   emoji                 TEXT,
@@ -411,7 +411,7 @@ CREATE TABLE service_catalog (
 
 
 CREATE TABLE service_requests (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   service_id            TEXT         NOT NULL,                               -- soft FK to service_catalog.service_id
   room_number           TEXT,
@@ -440,7 +440,7 @@ COMMENT ON TABLE service_requests IS 'Every guest service request. Telegram is p
 
 
 CREATE TABLE sla_breaches (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   request_id            UUID         NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
   breached_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -454,7 +454,7 @@ CREATE TABLE sla_breaches (
 -- ============================================================================
 
 CREATE TABLE fulfillment_approvals (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   qr_asset_id           UUID         REFERENCES qr_assets(id) ON DELETE SET NULL,
   session_id            UUID         REFERENCES guest_sessions(id) ON DELETE SET NULL,
@@ -479,7 +479,7 @@ CREATE TABLE fulfillment_approvals (
 -- ============================================================================
 
 CREATE TABLE slot_balances (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   device_hash           TEXT         NOT NULL,
   room_number           TEXT,
@@ -500,7 +500,7 @@ CREATE TABLE slot_balances (
 
 
 CREATE TABLE slot_spins (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   device_hash           TEXT         NOT NULL,
   room_number           TEXT,
@@ -528,7 +528,7 @@ CREATE TABLE slot_property_stats (
 -- ============================================================================
 
 CREATE TABLE admin_messages (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   from_role             TEXT         NOT NULL                                -- 'super_admin' | 'property_manager'
                                        CHECK (from_role IN ('super_admin', 'property_manager')),
@@ -547,7 +547,7 @@ CREATE TABLE admin_messages (
 -- ============================================================================
 
 CREATE TABLE alerts (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         NOT NULL REFERENCES hotels(id) ON DELETE CASCADE,
   severity              TEXT         NOT NULL                                -- 'info' | 'warning' | 'critical'
                                        CHECK (severity IN ('info', 'warning', 'critical')),
@@ -564,7 +564,7 @@ CREATE TABLE alerts (
 -- ============================================================================
 
 CREATE TABLE live_events (
-  id                    UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id                    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
   hotel_id              UUID         REFERENCES hotels(id) ON DELETE CASCADE, -- nullable: null = global event
   event_type            TEXT         NOT NULL,                               -- 'goal_scored', 'match_started'
   payload               JSONB        NOT NULL,                               -- { home: 'Liverpool', away: 'Man Utd', score: '2-1', scorer: '...' }
@@ -602,7 +602,7 @@ CREATE INDEX idx_scans_hotel_date            ON scans (hotel_id, scanned_at DESC
 CREATE INDEX idx_scans_session               ON scans (session_id, scanned_at DESC);
 CREATE INDEX idx_scans_qr                    ON scans (qr_asset_id, scanned_at DESC);
 CREATE INDEX idx_sessions_device             ON guest_sessions (hotel_id, device_hash);
-CREATE INDEX idx_sessions_active             ON guest_sessions (hotel_id, last_activity_at DESC) WHERE expires_at > NOW();
+CREATE INDEX idx_sessions_active             ON guest_sessions (hotel_id, last_activity_at DESC);
 CREATE INDEX idx_verification_attempts_hotel ON verification_attempts (hotel_id, attempted_at DESC);
 
 -- Service requests dashboard
