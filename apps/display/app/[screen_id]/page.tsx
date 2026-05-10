@@ -1,12 +1,10 @@
-import DisplayApp from '@/components/DisplayApp'
+import DisplayDashboard from '@/components/DisplayDashboard'
 
-interface Props {
-  params: { screen_id: string }
-}
+interface Props { params: { screen_id: string } }
 
 export default function ScreenPage({ params }: Props) {
   return (
-    <DisplayApp
+    <DisplayDashboard
       screenId={params.screen_id}
       supabaseUrl={process.env.NEXT_PUBLIC_SUPABASE_URL!}
       supabaseAnonKey={process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}
@@ -15,6 +13,4 @@ export default function ScreenPage({ params }: Props) {
   )
 }
 
-export function generateStaticParams() {
-  return [] // dynamic — no static generation for TV screens
-}
+export function generateStaticParams() { return [] }
