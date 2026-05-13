@@ -26,6 +26,15 @@ interface DisplayConfig {
   map_config:  { primary_provider: 'maplibre_osm' | 'mapbox' | 'tomtom'; fallback_provider: string; show_traffic: boolean; default_zoom: number; center?: [number, number]; mapbox_token?: string }
   airports:    { iata_code: string; airport_name: string; drive_time_minutes: number | null }[]
   welcome:     { timing_sec: number; highlight_offer: string; greeting: string; subtext: string }
+  content: {
+    carousel: any[]
+    welcome: any
+    ticker: any
+    media: any
+    games: any
+    currency: { source: string; rates: any[] }
+    flights: Record<string, any[]>
+  }
   etag:        string
   refresh_interval_seconds: number
 }
@@ -118,7 +127,7 @@ export default function DisplayDashboard({ screenId, supabaseUrl, supabaseAnonKe
 
   // ── Carousel (only panel-type slides rotate in left area) ─────────────────
   useEffect(() => {
-    if (!config?.playlist.length || !welcomeDone) return
+    if (!config?.playlist?.length || !welcomeDone) return
 
     // Filter to only slides that render as main panels
     const panels = config.playlist.filter(s => PANEL_TYPES.has(s.type))
@@ -158,7 +167,8 @@ export default function DisplayDashboard({ screenId, supabaseUrl, supabaseAnonKe
     )
   }
 
-  const { branding, welcome, sidebar_qrs, rates, ticker, map_config, airports } = config
+  const { branding, welcome, sidebar_qrs, ticker, map_config, airports, content } = config
+  const rates = content.currency?.rates ?? []
   const colors = branding.colors
   const tod    = getTimeOfDay()
 
@@ -198,7 +208,7 @@ export default function DisplayDashboard({ screenId, supabaseUrl, supabaseAnonKe
         lon={lon}
         mainPanelView={mainView}
         airports={airports ?? []}
-        flights={{}}
+        flights={config.content.flights ?? {}}
         mapConfig={map_config ?? { primary_provider: 'maplibre_osm', fallback_provider: 'maplibre_osm', show_traffic: false, default_zoom: 13 }}
         rates={rates ?? []}
         sidebarQrs={sidebar_qrs ?? []}

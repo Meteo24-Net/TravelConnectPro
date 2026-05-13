@@ -37,29 +37,23 @@ export default function FlightsSlide({ iataCode, airportName, driveMinutes, colo
   const displayFlights = flights?.length ? flights : DEFAULT_FLIGHTS
 
   return (
-    <div
-      className="w-full h-full flex flex-col relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #050508 0%, #08080f 100%)' }}
-    >
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-transparent">
       {/* Header */}
-      <div className="flex items-center justify-between px-16 pt-12 pb-6">
+      <div className="flex items-center justify-between px-10 pt-8 pb-4">
         <div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: colors.accent_gold, letterSpacing: '0.2em', fontWeight: 600, textTransform: 'uppercase' }}>
-            Departures
+          <div className="text-[10px] font-black tracking-[0.3em] text-[#c5a059] uppercase mb-1">
+            Airport Departures
           </div>
-          <div style={{ fontFamily: '"Playfair Display", serif', fontSize: 28, color: 'white', marginTop: 4 }}>
+          <div className="text-3xl font-serif text-white">
             {airportName}
           </div>
         </div>
-        <div className="flex items-center gap-8">
-          <div
-            className="px-6 py-3 rounded-xl text-center"
-            style={{ background: `${colors.primary}18`, border: `1px solid ${colors.primary}44` }}
-          >
-            <div style={{ fontFamily: '"JetBrains Mono", monospace', fontSize: 28, fontWeight: 700, color: colors.primary }}>{iataCode}</div>
+        <div className="flex items-center gap-6">
+          <div className="bg-white/5 border border-white/10 px-5 py-2 rounded-2xl text-center">
+            <div className="text-2xl font-black text-[#009FE3] tracking-tighter">{iataCode}</div>
             {driveMinutes && (
-              <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-                🚗 {driveMinutes} min drive
+              <div className="text-[9px] font-bold text-white/30 uppercase mt-1">
+                {driveMinutes} min drive
               </div>
             )}
           </div>
@@ -67,52 +61,38 @@ export default function FlightsSlide({ iataCode, airportName, driveMinutes, colo
       </div>
 
       {/* Column headers */}
-      <div
-        className="flex items-center px-16 py-3 mx-16 rounded-lg mb-2"
-        style={{ background: 'rgba(255,255,255,0.04)' }}
-      >
-        <div style={{ width: 130, fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Flight</div>
-        <div style={{ flex: 1, fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Destination</div>
-        <div style={{ width: 120, textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Time</div>
-        <div style={{ width: 80, textAlign: 'center', fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Gate</div>
-        <div style={{ width: 140, textAlign: 'right', fontFamily: 'Inter, sans-serif', fontSize: 11, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.15em', textTransform: 'uppercase' }}>Status</div>
+      <div className="flex items-center px-10 py-3 mx-10 rounded-xl mb-4 bg-white/5 border border-white/5">
+        <div className="w-32 text-[10px] font-black text-white/30 uppercase tracking-widest">Flight</div>
+        <div className="flex-1 text-[10px] font-black text-white/30 uppercase tracking-widest">Destination</div>
+        <div className="w-24 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Time</div>
+        <div className="w-20 text-center text-[10px] font-black text-white/30 uppercase tracking-widest">Gate</div>
+        <div className="w-32 text-right text-[10px] font-black text-white/30 uppercase tracking-widest">Status</div>
       </div>
 
-      {/* Flights */}
-      <div className="flex-1 flex flex-col justify-center px-16 space-y-1">
-        {displayFlights.slice(0, 6).map((flight, i) => {
+      {/* Flights List */}
+      <div className="flex-1 px-10 overflow-hidden">
+        {displayFlights.slice(0, 7).map((flight, i) => {
           const statusColor = STATUS_COLOR[flight.status] ?? 'rgba(255,255,255,0.6)'
           return (
             <div
               key={i}
-              className="flex items-center py-4 px-0 rounded-lg"
-              style={{
-                borderBottom: i < displayFlights.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                opacity: flight.status === 'Departed' ? 0.45 : 1,
-              }}
+              className="flex items-center py-4 border-b border-white/5 last:border-0"
+              style={{ opacity: flight.status === 'Departed' ? 0.3 : 1 }}
             >
-              <div style={{ width: 130, fontFamily: '"JetBrains Mono", monospace', fontSize: 18, color: colors.primary, fontWeight: 500 }}>
+              <div className="w-32 font-mono text-lg font-bold text-[#009FE3]">
                 {flight.flight_number}
               </div>
-              <div style={{ flex: 1, fontFamily: '"Playfair Display", serif', fontSize: 22, color: 'white', fontWeight: 500 }}>
+              <div className="flex-1 font-serif text-xl text-white font-medium">
                 {flight.destination}
               </div>
-              <div style={{ width: 120, textAlign: 'center', fontFamily: '"JetBrains Mono", monospace', fontSize: 22, color: 'white', fontWeight: 500 }}>
+              <div className="w-24 text-center font-mono text-xl text-white">
                 {flight.scheduled}
               </div>
-              <div style={{ width: 80, textAlign: 'center', fontFamily: '"JetBrains Mono", monospace', fontSize: 18, color: 'rgba(255,255,255,0.5)' }}>
+              <div className="w-20 text-center font-mono text-lg text-white/40">
                 {flight.gate ?? '—'}
               </div>
-              <div style={{ width: 140, textAlign: 'right' }}>
-                <span
-                  style={{
-                    fontFamily: 'Inter, sans-serif',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: statusColor,
-                    letterSpacing: '0.05em',
-                  }}
-                >
+              <div className="w-32 text-right">
+                <span className="text-xs font-black uppercase tracking-widest" style={{ color: statusColor }}>
                   {flight.status}
                 </span>
               </div>
@@ -120,8 +100,6 @@ export default function FlightsSlide({ iataCode, airportName, driveMinutes, colo
           )
         })}
       </div>
-
-      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${colors.primary}88, transparent)` }} />
     </div>
   )
 }

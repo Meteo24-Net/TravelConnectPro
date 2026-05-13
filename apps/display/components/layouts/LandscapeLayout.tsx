@@ -69,7 +69,7 @@ export default function LandscapeLayout(props: Props) {
     <div
       style={{
         width: '100vw', height: '100vh',
-        background: bgColor || '#0a0a0e',
+        background: '#000',
         display: 'grid',
         gridTemplateColumns: '2.6fr 1fr',
         gap: 20, padding: 20,
@@ -171,13 +171,13 @@ export default function LandscapeLayout(props: Props) {
           display: 'flex', flexDirection: 'column',
         }}>
           <div style={{ padding: '8px 15px', background: '#08080a', borderBottom: '1px solid #2a2a35', fontWeight: 600, fontSize: 11, color: '#b0b0b0', letterSpacing: 1.5, textAlign: 'center' }}>
-            WEATHER
+            WEATHER & ALERTS
           </div>
           <WeatherWidget city={city} lat={lat} lon={lon} timezone={timezone} />
         </div>
 
-        {/* Currency / Solar slider */}
-        <InfoBlock rates={rates} />
+        {/* Currency / Solar slider — now receives simple props */}
+        <InfoBlock rates={rates} lat={lat} lon={lon} />
 
         {/* QR carousel — bottom */}
         <QrCarousel items={sidebarQrs} />

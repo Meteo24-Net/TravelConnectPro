@@ -20,18 +20,22 @@ export default async function IntegrationsPage() {
 
   const { data: hotel } = await supabase
     .from('hotels')
-    .select('integration_keys, map_config')
+    .select('integration_config')
     .eq('id', profile.hotel_id)
     .single()
 
-  const keys      = (hotel?.integration_keys as Record<string, string>) ?? {}
-  const mapConfig = { ...DEFAULT_MAP_CONFIG, ...((hotel?.map_config as object) ?? {}) }
+  const { data: cacheStatus } = await supabase
+    .from('currency_cache')
+    .select('source, date, fetched_at, last_success_at')
+    .eq('hotel_id', profile.hotel_id)
+    .single()
+
+  const config = (hotel?.integration_config as any) ?? {}
 
   return (
     <IntegrationsClient
       hotelId={profile.hotel_id}
-      keys={keys}
-      mapConfig={mapConfig as typeof DEFAULT_MAP_CONFIG}
+      initialConfig={config}
     />
   )
 }

@@ -46,8 +46,10 @@ export default function QrCarousel({ items }: Props) {
   useEffect(() => {
     if (displayItems.length <= 1) return
     timer.current = setInterval(() => {
-      setPrev(a => a)
-      setActive(a => (a + 1) % displayItems.length)
+      setActive(a => {
+        setPrev(a)
+        return (a + 1) % displayItems.length
+      })
     }, 6000)
     return () => clearInterval(timer.current)
   }, [displayItems.length])

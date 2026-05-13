@@ -15,66 +15,33 @@ async function getSuperAdmin(hotelId: string) {
   return { supabase, hotelId }
 }
 
-export async function saveIntegrationKeysAction(
-  hotelId: string,
-  keys: Record<string, string>,
-): Promise<ActionResult> {
+export async function triggerRefreshAction(hotelId: string): Promise<ActionResult> {
   const ctx = await getSuperAdmin(hotelId)
   if (!ctx) return { ok: false, error: 'SuperAdmin only' }
 
-  // Sanitise — only allow known key names, strip whitespace
-  const ALLOWED_KEYS = [
-    'mapbox_token', 'tomtom_key', 'sports_api_key',
-    'aviation_key', 'openweather_key', 'exchange_rate_key',
-  ]
-  const sanitised: Record<string, string> = {}
-  for (const k of ALLOWED_KEYS) {
-    if (keys[k] !== undefined) sanitised[k] = keys[k].trim()
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/currency-refresh`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` }
+    })
+    if (!res.ok) throw new Error(await res.text())
+    revalidatePath('/integrations')
+    return { ok: true }
+  } catch (e: any) {
+    return { ok: false, error: e.message }
   }
-
-  const { error } = await ctx.supabase
-    .from('hotels')
-    .update({ integration_keys: sanitised })
-    .eq('id', hotelId)
-
-  if (error) return { ok: false, error: error.message }
-  revalidatePath('/integrations')
-  return { ok: true }
 }
 
-export async function saveMapConfigAction(
+export async function saveIntegrationConfigAction(
   hotelId: string,
-  mapConfig: {
-    primary_provider:  string
-    fallback_provider: string
-    show_traffic:      boolean
-    default_zoom:      number
-  },
+  config: any,
 ): Promise<ActionResult> {
   const ctx = await getSuperAdmin(hotelId)
   if (!ctx) return { ok: false, error: 'SuperAdmin only' }
 
-  if (mapConfig.default_zoom < 8 || mapConfig.default_zoom > 20) {
-    return { ok: false, error: 'Zoom must be between 8 and 20' }
-  }
-
-  // Fetch current map_config to preserve center coordinates
-  const { data: hotel } = await ctx.supabase
-    .from('hotels')
-    .select('map_config, location')
-    .eq('id', hotelId)
-    .single()
-
-  const existingConfig = (hotel?.map_config as Record<string, unknown>) ?? {}
-
   const { error } = await ctx.supabase
     .from('hotels')
-    .update({
-      map_config: {
-        ...existingConfig,
-        ...mapConfig,
-      }
-    })
+    .update({ integration_config: config })
     .eq('id', hotelId)
 
   if (error) return { ok: false, error: error.message }

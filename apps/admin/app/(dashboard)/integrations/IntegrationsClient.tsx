@@ -1,27 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { saveIntegrationKeysAction, saveMapConfigAction } from './actions'
-
-const MAP_PROVIDERS = [
-  { id: 'maplibre_osm', label: 'OpenStreetMap via MapLibre GL', cost: 'Free',    traffic: 'No live traffic on free tier' },
-  { id: 'tomtom',       label: 'TomTom Maps',                  cost: 'Freemium', traffic: 'Live traffic included' },
-  { id: 'mapbox',       label: 'Mapbox GL JS',                 cost: 'Paid',     traffic: 'Live traffic included' },
-]
-
-const API_KEY_FIELDS = [
-  { key: 'mapbox_token',      label: 'Mapbox Token',         hint: 'pk.xxx — URL-restrict to your display domain', icon: '🗺️', group: 'map' },
-  { key: 'tomtom_key',        label: 'TomTom API Key',       hint: 'From developer.tomtom.com',                   icon: '🗺️', group: 'map' },
-  { key: 'sports_api_key',    label: 'Sports API Key',       hint: 'API-Sports.io — football, basketball, tennis', icon: '⚽', group: 'data' },
-  { key: 'aviation_key',      label: 'AviationStack Key',    hint: 'aviationstack.com — live flight data',         icon: '✈️', group: 'data' },
-  { key: 'openweather_key',   label: 'OpenWeather Key',      hint: 'Optional — overrides free Open-Meteo',        icon: '🌤️', group: 'data' },
-  { key: 'exchange_rate_key', label: 'Exchange Rate Key',    hint: 'exchangerate-api.com or NBG direct',          icon: '💱', group: 'data' },
-]
+import { saveIntegrationConfigAction, triggerRefreshAction } from './actions'
 
 interface Props {
-  hotelId:    string
-  keys:       Record<string, string>
-  mapConfig:  { primary_provider: string; fallback_provider: string; show_traffic: boolean; default_zoom: number }
+  hotelId: string
+  initialConfig: any
 }
 
 function Toast({ msg, ok }: { msg: string; ok: boolean }) {
@@ -47,10 +31,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   )
 }
 
-export default function IntegrationsClient({ hotelId, keys: initialKeys, mapConfig: initialMap }: Props) {
-  const [keys, setKeys]           = useState<Record<string, string>>(initialKeys)
-  const [mapCfg, setMapCfg]       = useState(initialMap)
-  const [showKeys, setShowKeys]   = useState<Record<string, boolean>>({})
+export default function IntegrationsClient({ hotelId, initialConfig }: Props) {
+  const [config, setConfig]       = useState(initialConfig)
   const [toast, setToast]         = useState<{ msg: string; ok: boolean } | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -58,211 +40,252 @@ export default function IntegrationsClient({ hotelId, keys: initialKeys, mapConf
     setToast({ msg, ok }); setTimeout(() => setToast(null), 3500)
   }
 
-  function setKey(k: string, v: string) { setKeys(prev => ({ ...prev, [k]: v })) }
-
-  function saveKeys() {
-    startTransition(async () => {
-      const r = await saveIntegrationKeysAction(hotelId, keys)
-      showToast(r.ok ? 'API keys saved securely' : r.error ?? 'Failed', r.ok)
+  function updateConfig(path: string[], value: any) {
+    setConfig((prev: any) => {
+      const newCfg = JSON.parse(JSON.stringify(prev))
+      let current = newCfg
+      for (let i = 0; i < path.length - 1; i++) {
+        if (!current[path[i]]) current[path[i]] = {}
+        current = current[path[i]]
+      }
+      current[path[path.length - 1]] = value
+      return newCfg
     })
   }
 
-  function saveMap() {
+  function save() {
     startTransition(async () => {
-      const r = await saveMapConfigAction(hotelId, mapCfg)
-      showToast(r.ok ? 'Map config saved — TVs update within 5 min' : r.error ?? 'Failed', r.ok)
+      const r = await saveIntegrationConfigAction(hotelId, config)
+      showToast(r.ok ? 'Configuration saved successfully' : r.error ?? 'Failed', r.ok)
     })
   }
 
-  const mapGroup    = API_KEY_FIELDS.filter(f => f.group === 'map')
-  const dataGroup   = API_KEY_FIELDS.filter(f => f.group === 'data')
-  const primaryProv = MAP_PROVIDERS.find(p => p.id === mapCfg.primary_provider)
+  const currency = config.currency || {}
+  const oxrKey = currency.providers?.oxr?.api_key || ''
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 max-w-4xl pb-20">
       <div>
-        <h1 className="font-bold" style={{ fontSize: 22 }}>Integrations & API Keys</h1>
-        <p className="text-secondary" style={{ fontSize: 13, marginTop: 2 }}>
-          All external service keys. Stored encrypted, server-side only. Display app never receives raw keys.
+        <h1 className="font-bold" style={{ fontSize: 24, letterSpacing: '-0.02em' }}>Integrations</h1>
+        <p className="text-secondary" style={{ fontSize: 14, marginTop: 4 }}>
+          Manage your third-party API providers, credentials, and business rules.
         </p>
       </div>
 
-      {/* Security notice */}
-      <div className="phase-strip" style={{ background: 'rgba(239,68,68,0.05)', borderColor: 'rgba(239,68,68,0.2)' }}>
-        <span style={{ fontSize: 18 }}>🔒</span>
-        <div className="text-sm text-secondary">
-          Keys are stored in <strong className="text-primary">hotels.integration_keys</strong> — RLS-protected, SuperAdmin only.
-          Edge Functions read them server-side. The display app only receives cached results, never raw keys.
-          Exception: Mapbox token reaches the browser — <strong className="text-primary">URL-restrict it to your display domain.</strong>
-        </div>
-      </div>
-
-      {/* Map configuration */}
-      <div className="section-card" style={{ borderLeft: '3px solid var(--tcp-blue)' }}>
-        <div className="section-head">
-          <div className="section-title">Map provider</div>
-          <button className="btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={saveMap} disabled={isPending}>
-            Save map config
-          </button>
-        </div>
-        <div className="section-body space-y-5">
-          {/* Provider selector */}
-          <div className="space-y-2">
-            {MAP_PROVIDERS.map(p => (
-              <button
-                key={p.id}
-                onClick={() => setMapCfg(c => ({ ...c, primary_provider: p.id }))}
-                className="w-full flex items-center gap-4 p-4 rounded-lg border text-left transition-all"
-                style={{
-                  background:  mapCfg.primary_provider === p.id ? 'rgba(0,159,227,0.06)' : 'var(--bg-input)',
-                  borderColor: mapCfg.primary_provider === p.id ? 'rgba(0,159,227,0.3)' : 'var(--border-subtle)',
-                }}
-              >
-                <div className="shrink-0 rounded-full" style={{
-                  width: 18, height: 18,
-                  background: mapCfg.primary_provider === p.id ? 'var(--tcp-blue)' : 'transparent',
-                  border: `2px solid ${mapCfg.primary_provider === p.id ? 'var(--tcp-blue)' : 'var(--border-default)'}`,
-                }} />
-                <div className="flex-1">
-                  <div className="text-sm font-medium">{p.label}</div>
-                  <div className="flex gap-4 mt-1">
-                    <span
-                      className="tag"
-                      style={{
-                        color:       p.cost === 'Free' ? 'var(--tcp-green)' : p.cost === 'Paid' ? 'var(--tcp-amber)' : 'var(--tcp-blue)',
-                        background:  p.cost === 'Free' ? 'rgba(46,204,113,0.1)' : p.cost === 'Paid' ? 'rgba(245,158,11,0.1)' : 'rgba(0,159,227,0.1)',
-                        borderColor: p.cost === 'Free' ? 'rgba(46,204,113,0.3)' : p.cost === 'Paid' ? 'rgba(245,158,11,0.3)' : 'rgba(0,159,227,0.3)',
-                        fontSize: 10,
-                      }}
-                    >
-                      {p.cost}
-                    </span>
-                    <span className="text-tertiary" style={{ fontSize: 11 }}>{p.traffic}</span>
-                  </div>
-                </div>
-              </button>
-            ))}
+      {/* Global Currency Provider */}
+      <div className="section-card" style={{ borderLeft: '4px solid var(--tcp-amber)' }}>
+        <div className="section-head flex justify-between items-center pb-4 border-b border-subtle">
+          <div>
+            <div className="section-title text-lg">Currency Provider (Global)</div>
+            <div className="text-tertiary text-xs mt-1">Powers live FX rates for display screens.</div>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-secondary font-medium mr-2">Enabled</span>
+            <button 
+              onClick={() => updateConfig(['currency', 'enabled'], !currency.enabled)}
+              className={`w-10 h-5 rounded-full relative transition-colors ${currency.enabled ? 'bg-green-500' : 'bg-gray-600'}`}
+            >
+              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${currency.enabled ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
+        </div>
 
-          {/* Map options */}
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Fallback provider (if primary fails)">
-              <select className="select" value={mapCfg.fallback_provider}
-                onChange={e => setMapCfg(c => ({ ...c, fallback_provider: e.target.value }))}>
-                {MAP_PROVIDERS.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}
+        <div className="section-body pt-6 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="API Provider" hint="Determines the source of mid-market rates.">
+              <select 
+                className="select w-full" 
+                value={currency.source || 'oxr'}
+                onChange={(e) => updateConfig(['currency', 'source'], e.target.value)}
+              >
+                <option value="oxr">Open Exchange Rates (OXR)</option>
+                <option value="nbg">NBG (National Bank of Georgia)</option>
               </select>
             </Field>
-            <Field label="Default zoom level" hint="8 = country, 13 = city, 17 = street">
-              <input className="input font-mono" type="number" min={8} max={20}
-                value={mapCfg.default_zoom}
-                onChange={e => setMapCfg(c => ({ ...c, default_zoom: parseInt(e.target.value) || 13 }))} />
+
+            <Field label="OXR App ID (API Key)" hint="Required for OXR provider.">
+              <input 
+                className="input font-mono" 
+                type="password" 
+                value={oxrKey}
+                onChange={(e) => updateConfig(['currency', 'providers', 'oxr', 'api_key'], e.target.value)}
+                placeholder="Enter App ID..."
+              />
             </Field>
           </div>
 
-          {/* Traffic toggle */}
-          <button
-            onClick={() => setMapCfg(c => ({ ...c, show_traffic: !c.show_traffic }))}
-            className="flex items-center gap-3 p-3 rounded-lg border text-left w-full"
-            style={{ background: 'var(--bg-input)', borderColor: 'var(--border-default)' }}
-          >
-            <div className="rounded-full shrink-0" style={{
-              width: 40, height: 22,
-              background: mapCfg.show_traffic ? 'var(--tcp-blue)' : 'rgba(255,255,255,0.1)',
-              position: 'relative',
-            }}>
-              <div className="absolute rounded-full bg-white" style={{
-                width: 16, height: 16, top: 3, transition: 'left 0.15s',
-                left: mapCfg.show_traffic ? 21 : 3,
-              }} />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium">Live traffic layer</div>
-              <div className="text-tertiary" style={{ fontSize: 11 }}>
-                {mapCfg.show_traffic
-                  ? primaryProv?.traffic === 'No live traffic on free tier'
-                    ? '⚠️ Not available on current provider — switch to TomTom or Mapbox'
-                    : 'Traffic overlay active on TV screens'
-                  : 'Map shows without traffic overlay'}
-              </div>
-            </div>
-          </button>
+          <div className="grid grid-cols-3 gap-6">
+            <Field label="Base Currency" hint="Property's home currency.">
+              <input 
+                className="input uppercase font-bold" 
+                maxLength={3}
+                value={currency.base_currency || 'GEL'}
+                onChange={(e) => updateConfig(['currency', 'base_currency'], e.target.value.toUpperCase())}
+              />
+            </Field>
+
+            <Field label="Spread Percentage (%)" hint="Applied to buy/sell rates. 0.015 = 1.5%">
+              <input 
+                className="input font-mono" 
+                type="number" 
+                step="0.001"
+                value={currency.spread_pct || 0.015}
+                onChange={(e) => updateConfig(['currency', 'spread_pct'], parseFloat(e.target.value))}
+              />
+            </Field>
+
+            <Field label="Refresh Interval (Hours)" hint="How often rates are cached.">
+              <input 
+                className="input font-mono" 
+                type="number"
+                value={currency.refresh_interval_hours || 6}
+                onChange={(e) => updateConfig(['currency', 'refresh_interval_hours'], parseInt(e.target.value))}
+              />
+            </Field>
+          </div>
+
+          <Field label="Display Currencies (Comma separated)" hint="Currencies to show on the ticker.">
+            <input 
+              className="input uppercase font-mono tracking-widest" 
+              value={(currency.display_codes || []).join(', ')}
+              onChange={(e) => updateConfig(['currency', 'display_codes'], e.target.value.split(',').map(s => s.trim().toUpperCase()))}
+              placeholder="USD, EUR, TRY..."
+            />
+          </Field>
         </div>
       </div>
 
-      {/* Map API keys */}
-      <div className="section-card">
-        <div className="section-head">
-          <div className="section-title">Map API keys</div>
+      {/* Flight Provider */}
+      <div className="section-card" style={{ borderLeft: '4px solid var(--tcp-blue)' }}>
+        <div className="section-head flex justify-between items-center pb-4 border-b border-subtle">
+          <div>
+            <div className="section-title text-lg">Flight Provider (AirLabs)</div>
+            <div className="text-tertiary text-xs mt-1">Real-time Arrivals & Departures for guests.</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-secondary font-medium mr-2">Enabled</span>
+            <button 
+              onClick={() => updateConfig(['flights', 'enabled'], !config.flights?.enabled)}
+              className={`w-10 h-5 rounded-full relative transition-colors ${config.flights?.enabled ? 'bg-blue-500' : 'bg-gray-600'}`}
+            >
+              <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${config.flights?.enabled ? 'left-6' : 'left-1'}`} />
+            </button>
+          </div>
         </div>
-        <div className="section-body space-y-4">
-          {mapGroup.map(f => (
-            <div key={f.key} className="flex gap-3 items-start">
-              <span style={{ fontSize: 20, marginTop: 8 }}>{f.icon}</span>
-              <div className="flex-1">
-                <Field label={f.label} hint={f.hint}>
-                  <div className="flex gap-2">
-                    <input
-                      className="input font-mono flex-1"
-                      type={showKeys[f.key] ? 'text' : 'password'}
-                      value={keys[f.key] ?? ''}
-                      onChange={e => setKey(f.key, e.target.value)}
-                      placeholder="Enter key…"
-                    />
-                    <button
-                      className="btn-ghost shrink-0"
-                      style={{ padding: '8px 12px', fontSize: 12 }}
-                      onClick={() => setShowKeys(s => ({ ...s, [f.key]: !s[f.key] }))}
-                    >
-                      {showKeys[f.key] ? '🙈' : '👁'}
-                    </button>
-                  </div>
-                </Field>
-              </div>
-            </div>
-          ))}
+
+        <div className="section-body pt-6 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="IATA Airport Code" hint="The 3-letter code for the nearest airport.">
+              <input 
+                className="input uppercase font-bold tracking-widest" 
+                maxLength={3}
+                value={config.flights?.iata_code || 'BUS'}
+                onChange={(e) => updateConfig(['flights', 'iata_code'], e.target.value.toUpperCase())}
+              />
+            </Field>
+
+            <Field label="AirLabs API Key" hint="Required for live flight tracking.">
+              <input 
+                className="input font-mono" 
+                type="password" 
+                value={config.flights?.providers?.airlabs?.api_key || ''}
+                onChange={(e) => updateConfig(['flights', 'providers', 'airlabs', 'api_key'], e.target.value)}
+                placeholder="Enter API Key..."
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="Airport Name (Display)" hint="Friendly name shown on screen.">
+              <input 
+                className="input" 
+                value={config.flights?.airport_name || 'Airport'}
+                onChange={(e) => updateConfig(['flights', 'airport_name'], e.target.value)}
+              />
+            </Field>
+
+            <Field label="Drive Time (Minutes)" hint="Estimated time from hotel to airport.">
+              <input 
+                className="input font-mono" 
+                type="number"
+                value={config.flights?.drive_time_minutes || 15}
+                onChange={(e) => updateConfig(['flights', 'drive_time_minutes'], parseInt(e.target.value))}
+              />
+            </Field>
+          </div>
         </div>
       </div>
 
-      {/* Data API keys */}
-      <div className="section-card">
-        <div className="section-head">
-          <div className="section-title">Data API keys</div>
-          <span className="text-tertiary" style={{ fontSize: 11 }}>server-side only — never sent to display app</span>
+      {/* Map Configuration */}
+      <div className="section-card" style={{ borderLeft: '4px solid var(--tcp-blue)' }}>
+        <div className="section-head pb-4 border-b border-subtle">
+          <div className="section-title text-lg">Map Configuration</div>
+          <div className="text-tertiary text-xs mt-1">Visual settings for property maps.</div>
         </div>
-        <div className="section-body space-y-4">
-          {dataGroup.map(f => (
-            <div key={f.key} className="flex gap-3 items-start">
-              <span style={{ fontSize: 20, marginTop: 8 }}>{f.icon}</span>
-              <div className="flex-1">
-                <Field label={f.label} hint={f.hint}>
-                  <div className="flex gap-2">
-                    <input
-                      className="input font-mono flex-1"
-                      type={showKeys[f.key] ? 'text' : 'password'}
-                      value={keys[f.key] ?? ''}
-                      onChange={e => setKey(f.key, e.target.value)}
-                      placeholder="Enter key…"
-                    />
-                    <button
-                      className="btn-ghost shrink-0"
-                      style={{ padding: '8px 12px', fontSize: 12 }}
-                      onClick={() => setShowKeys(s => ({ ...s, [f.key]: !s[f.key] }))}
-                    >
-                      {showKeys[f.key] ? '🙈' : '👁'}
-                    </button>
-                  </div>
-                </Field>
-              </div>
-            </div>
-          ))}
+        <div className="section-body pt-6 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
+            <Field label="Primary Provider">
+              <select className="select w-full" value={config.maps?.provider || 'maplibre'}
+                onChange={e => updateConfig(['maps', 'provider'], e.target.value)}>
+                <option value="maplibre">MapLibre (OSM)</option>
+                <option value="mapbox">Mapbox</option>
+              </select>
+            </Field>
+            <Field label="Default Zoom">
+              <input className="input font-mono" type="number" min={8} max={20}
+                value={config.maps?.default_zoom || 13}
+                onChange={e => updateConfig(['maps', 'default_zoom'], parseInt(e.target.value))} />
+            </Field>
+          </div>
         </div>
       </div>
 
-      {/* Save all keys */}
-      <div className="flex justify-end">
-        <button className="btn-primary" onClick={saveKeys} disabled={isPending} style={{ opacity: isPending ? 0.6 : 1 }}>
-          {isPending ? 'Saving…' : 'Save all API keys'}
+      <div className="flex justify-end pt-4 gap-3">
+        <button 
+          className="btn-ghost px-6 py-3 rounded-xl font-medium border border-subtle" 
+          onClick={async () => {
+            startTransition(async () => {
+              const r = await triggerRefreshAction(hotelId)
+              showToast(r.ok ? 'Manual refresh triggered' : r.error ?? 'Failed', r.ok)
+            })
+          }} 
+          disabled={isPending}
+        >
+          {isPending ? 'Processing...' : '🔄 Trigger Manual Refresh'}
         </button>
+        <button 
+          className="btn-primary px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20" 
+          onClick={save} 
+          disabled={isPending}
+        >
+          {isPending ? 'Syncing...' : 'Save All Changes'}
+        </button>
+      </div>
+
+      {/* Diagnostics Section */}
+      <div className="mt-12 p-6 rounded-2xl bg-black/40 border border-white/5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-2 h-2 rounded-full bg-green-500" />
+          <h2 className="text-sm font-bold tracking-widest uppercase text-secondary">System Health & Diagnostics</h2>
+        </div>
+        <div className="grid grid-cols-4 gap-8">
+          <div>
+            <div className="text-[10px] text-tertiary uppercase font-bold mb-1">Last Data Fetch</div>
+            <div className="text-sm font-mono text-primary">{initialConfig.cacheStatus?.last_success_at ? new Date(initialConfig.cacheStatus.last_success_at).toLocaleString() : 'Never'}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-tertiary uppercase font-bold mb-1">Active Source</div>
+            <div className="text-sm text-primary">{initialConfig.cacheStatus?.source || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-tertiary uppercase font-bold mb-1">Source Date</div>
+            <div className="text-sm text-primary">{initialConfig.cacheStatus?.date || 'N/A'}</div>
+          </div>
+          <div>
+            <div className="text-[10px] text-tertiary uppercase font-bold mb-1">Cache Status</div>
+            <div className="tag bg-green-500/10 text-green-500 border-green-500/20 px-2 py-0.5 rounded text-[10px] font-bold">HEALTHY</div>
+          </div>
+        </div>
       </div>
 
       {toast && <Toast msg={toast.msg} ok={toast.ok} />}

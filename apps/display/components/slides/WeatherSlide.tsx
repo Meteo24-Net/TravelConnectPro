@@ -31,69 +31,69 @@ function getIcon(condition: string) {
 }
 
 export default function WeatherSlide({ city, colors, data }: Props) {
+  const c = data ? Math.round(data.temp_c) : 0
+  const f = Math.round((c * 9/5) + 32)
+
   if (!data) {
     return (
-      <div className="w-full h-full flex items-center justify-center"
-        style={{ background: 'linear-gradient(135deg, #050508, #0a0a18)' }}>
-        <div className="text-center" style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'Inter, sans-serif' }}>
-          <div style={{ fontSize: 48 }}>🌤️</div>
-          <div style={{ fontSize: 18, marginTop: 16 }}>Weather data loading…</div>
-          <div style={{ fontSize: 13, marginTop: 8, opacity: 0.6 }}>Updates hourly via weather API</div>
+      <div className="w-full h-full flex items-center justify-center bg-transparent">
+        <div className="text-center text-white/30 font-sans">
+          <div className="text-6xl mb-6">🌤️</div>
+          <div className="text-xl uppercase tracking-widest">Connecting to Meteo24…</div>
         </div>
       </div>
     )
   }
 
   return (
-    <div
-      className="w-full h-full flex flex-col relative overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #050510 0%, #08081a 60%, #050508 100%)' }}
-    >
+    <div className="w-full h-full flex flex-col relative overflow-hidden bg-transparent">
       {/* Top bar */}
-      <div className="flex items-center justify-between px-16 pt-12 pb-6">
+      <div className="flex items-center justify-between px-10 pt-8 pb-4">
         <div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: colors.accent_gold, letterSpacing: '0.2em', fontWeight: 600, textTransform: 'uppercase' }}>
-            Weather
+          <div className="text-[10px] font-black tracking-[0.3em] text-[#c5a059] uppercase mb-1">
+            Local Forecast
           </div>
-          <div style={{ fontFamily: '"Playfair Display", serif', fontSize: 28, color: 'white', marginTop: 4 }}>
+          <div className="text-3xl font-serif text-white">
             {city}
           </div>
-        </div>
-        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-          Updated hourly
         </div>
       </div>
 
       {/* Main weather */}
-      <div className="flex-1 flex items-center px-16 gap-20">
+      <div className="flex-1 flex items-center px-10 gap-16">
         {/* Current conditions */}
-        <div className="flex items-center gap-10">
-          <div style={{ fontSize: 100 }}>{getIcon(data.condition)}</div>
+        <div className="flex items-center gap-8">
+          <div className="text-[120px] drop-shadow-2xl">{getIcon(data.condition)}</div>
           <div>
-            <div style={{ fontFamily: '"Playfair Display", serif', fontSize: 110, fontWeight: 600, color: 'white', lineHeight: 1, textShadow: `0 0 60px ${colors.primary}55` }}>
-              {Math.round(data.temp_c)}°
+            <div className="flex items-start gap-4">
+              <div className="text-[130px] font-serif font-bold text-white leading-none drop-shadow-2xl">
+                {c}
+              </div>
+              <div className="flex flex-col gap-2 mt-4">
+                <div className="text-4xl font-bold text-white">°C</div>
+                <div className="h-[1px] w-full bg-white/20" />
+                <div className="text-2xl font-medium text-white/40">{f}°F</div>
+              </div>
             </div>
-            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 22, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
+            <div className="text-2xl font-light text-[#00bcd4] tracking-wide mt-4 uppercase font-bold">
               {data.condition}
             </div>
           </div>
         </div>
 
-        {/* Divider */}
-        <div style={{ width: 1, height: 160, background: 'rgba(255,255,255,0.1)' }} />
-
-        {/* Stats */}
-        <div className="space-y-5">
+        {/* Stats Grid */}
+        <div className="flex-1 grid grid-cols-2 gap-4 max-w-md">
           {[
-            { icon: '💨', label: 'Wind',        value: `${data.wind_kmh} km/h` },
+            { icon: '💨', label: 'Wind Speed',    value: `${data.wind_kmh} km/h` },
+            { icon: '💧', label: 'Humidity',      value: `${data.uv_index > 5 ? 'High' : 'Moderate'}` },
             { icon: '🌧️', label: 'Precipitation', value: `${data.precip_mm} mm` },
-            { icon: '☀️', label: 'UV Index',     value: data.uv_index <= 2 ? `${data.uv_index} Low` : data.uv_index <= 5 ? `${data.uv_index} Moderate` : `${data.uv_index} High` },
+            { icon: '☀️', label: 'UV Index',       value: `${data.uv_index}` },
           ].map(stat => (
-            <div key={stat.label} className="flex items-center gap-4">
-              <span style={{ fontSize: 24 }}>{stat.icon}</span>
+            <div key={stat.label} className="glass-panel rounded-2xl p-4 flex items-center gap-4 border-white/5">
+              <span className="text-2xl">{stat.icon}</span>
               <div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{stat.label}</div>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 20, color: 'white', fontWeight: 500 }}>{stat.value}</div>
+                <div className="text-[9px] font-black text-white/30 uppercase tracking-widest">{stat.label}</div>
+                <div className="text-lg font-bold text-white">{stat.value}</div>
               </div>
             </div>
           ))}
@@ -101,30 +101,20 @@ export default function WeatherSlide({ city, colors, data }: Props) {
 
         {/* Forecast */}
         {data.forecast?.length > 0 && (
-          <>
-            <div style={{ width: 1, height: 160, background: 'rgba(255,255,255,0.1)' }} />
-            <div className="flex gap-8">
-              {data.forecast.slice(0, 3).map((day, i) => (
-                <div key={i} className="flex flex-col items-center gap-2"
-                  style={{
-                    padding: '16px 20px',
-                    borderRadius: 12,
-                    background: i === 0 ? `${colors.primary}18` : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${i === 0 ? colors.primary + '44' : 'rgba(255,255,255,0.08)'}`,
-                  }}>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>{day.day}</div>
-                  <div style={{ fontSize: 32 }}>{getIcon(day.icon)}</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, color: 'white', fontWeight: 600 }}>{Math.round(day.high)}°</div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>{Math.round(day.low)}°</div>
+          <div className="flex flex-col gap-3">
+            {data.forecast.slice(0, 3).map((day, i) => (
+              <div key={i} className="glass-panel rounded-2xl p-4 flex items-center gap-6 border-white/5">
+                <div className="w-10 text-xs font-black text-white/40 uppercase">{day.day}</div>
+                <div className="text-3xl">{getIcon(day.icon)}</div>
+                <div className="flex flex-col">
+                  <div className="text-lg font-bold text-white">{Math.round(day.high)}°</div>
+                  <div className="text-[10px] font-bold text-white/30">{Math.round(day.low)}°</div>
                 </div>
-              ))}
-            </div>
-          </>
+              </div>
+            ))}
+          </div>
         )}
       </div>
-
-      {/* Bottom accent */}
-      <div className="absolute bottom-0 left-0 right-0 h-1" style={{ background: `linear-gradient(90deg, transparent, ${colors.primary}88, transparent)` }} />
     </div>
   )
 }
